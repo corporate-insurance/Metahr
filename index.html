@@ -19,7 +19,7 @@ nav button{all:unset;cursor:pointer;padding:9px 12px;border-radius:8px;color:var
 nav button[aria-current=true]{background:var(--ac);color:var(--aci)}
 :focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 main{padding:26px clamp(14px,3.5vw,40px);max-width:1040px;width:100%}
-.sub{color:var(--mute);margin:4px 0 20px}.mute{color:var(--mute);font-size:13px}
+.panel a{color:var(--ac)}.sub{color:var(--mute);margin:4px 0 20px}.mute{color:var(--mute);font-size:13px}
 .panel{background:var(--sf);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
 .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
 .stat b{font:700 30px "Bricolage Grotesque",sans-serif;display:block}
@@ -50,7 +50,12 @@ tr[data-open]{cursor:pointer}tr[data-open]:hover{background:var(--bg)}
 <button data-v="dash">Dashboard</button><button data-v="list">Employees</button><button data-v="rep">Reports and backup</button><button data-v="log">Activity log</button><button data-v="lv">Leave requests</button><button data-v="users">Users</button><button data-v="out" id="out">Sign out</button></nav>
 <main id="main"></main></div>
 <div id="slip"></div><div id="toast" role="status"></div>
-<script>
+<script type="module">
+const FB="https://www.gstatic.com/firebasejs/13.2.0/";
+let fbm;try{const m=await Promise.all([import(FB+"firebase-app.js"),import(FB+"firebase-auth.js"),import(FB+"firebase-firestore.js")]);fbm=Object.assign({},...m)}catch(x){document.body.innerHTML='<p style="padding:24px;font:16px sans-serif">Could not load the portal. Check your internet connection and refresh the page.</p>';throw x}
+const {initializeApp,deleteApp,getAuth,setPersistence,browserSessionPersistence,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,sendPasswordResetEmail,deleteUser,getFirestore,collection,doc,setDoc,deleteDoc,addDoc,getDoc,onSnapshot,writeBatch,query,orderBy,limit}=fbm;
+const firebaseConfig={apiKey:"AIzaSyASuZMqSs39jrwlDFpfmNUP2g8PkHaWX4s",authDomain:"meta-eeb73.firebaseapp.com",projectId:"meta-eeb73",storageBucket:"meta-eeb73.firebasestorage.app",messagingSenderId:"1066520166605",appId:"1:1066520166605:web:bda895fc57e6986715e984"};
+const fbApp=initializeApp(firebaseConfig),auth=getAuth(fbApp),db=getFirestore(fbApp);
 const KEY="hr-portal-v1",TYPES=["Manager","Sales executive","Telesales","Operations"],KINDS=["On roll","Contract"];
 const SALES=["Sales executive","Telesales"];
 const kindOf=e=>e.kind||(e.type==="Contract employee"?"Contract":"On roll"),typeOf=e=>e.type==="Contract employee"||e.type==="Other"?"Operations":(e.type||"");
@@ -62,24 +67,44 @@ const fmt=d=>d?new Date(d+"T00:00").toLocaleDateString("en-IN",{day:"numeric",mo
 const dd=d=>Math.round((new Date(d+"T00:00")-new Date(today()+"T00:00"))/864e5);
 function ann(d){const t=new Date(today()+"T00:00"),x=new Date(d+"T00:00");const n=new Date(t.getFullYear(),x.getMonth(),x.getDate());if(n<t)n.setFullYear(t.getFullYear()+1);return Math.round((n-t)/864e5)}
 const mk=o=>({status:"Active",kind:"On roll",onb:{},ex:{},leave:[],inc:[],docs:[],assets:[],train:[],notes:[],...o});
-let S=null;try{S=JSON.parse(localStorage.getItem(KEY))}catch(x){}
-if(!S)S={emps:[
-mk({id:"E1001",name:"Vikram Nair",type:"Manager",phone:"9800000001",team:"Bengaluru branch",joined:"2019-08-01",dob:"1984-11-02",salary:90000,pf:5400,esi:0,tds:6000}),
-mk({id:"E1002",name:"Rohan Shah",kind:"Contract",type:"Operations",phone:"9800000002",team:"Processing",joined:"2025-11-01",contractStart:"2025-11-01",contractEnd:addD(20),salary:28000,pf:1800,esi:210,tds:0}),
-mk({id:"E1003",name:"Karan Bose",type:"Sales executive",phone:"9800000003",team:"Sales",region:"Whitefield",target:12,joined:"2024-02-19",salary:30000,pf:1800,esi:225,tds:0,inc:[{month:"2026-09",target:12,ach:14,amt:7000}]}),
-mk({id:"E1004",name:"Divya Rao",type:"Telesales",phone:"9800000004",team:"Calling team A",shift:"10am to 7pm",region:"South",target:300,joined:"2026-08-10",probEnd:addD(12),salary:22000,pf:1800,esi:165,tds:0})],log:[]};
-S.cfg=S.cfg||{};S.lr=S.lr||[];
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(x){toast("Could not save in this browser")}clearTimeout(btimer);btimer=setTimeout(()=>bwrite(),1500)}
-function log(m){S.log.unshift({t:new Date().toLocaleString("en-IN"),m:(me?me+": ":"")+m});S.log=S.log.slice(0,200)}
+let S={emps:[],lr:[],cfg:{},log:[],users:[]};
+const snap={emps:{},lr:{},cfg:""};
+const canon=o=>Array.isArray(o)?"["+o.map(canon).join(",")+"]":o&&typeof o==="object"?"{"+Object.keys(o).sort().filter(k=>o[k]!==undefined).map(k=>JSON.stringify(k)+":"+canon(o[k])).join(",")+"}":JSON.stringify(o===undefined?null:o);
+const dkey=x=>encodeURIComponent(String(x)).replace(/%/g,"_");
+const plain=o=>JSON.parse(JSON.stringify(o));
+const wfail=()=>toast("Could not save. Check your internet connection and try again.");
+function save(){
+if(db&&meP){try{
+S.emps.forEach(e=>{const j=canon(e);if(snap.emps[e.id]!==j){snap.emps[e.id]=j;setDoc(doc(db,"emps",e.id),plain(e)).catch(wfail)}});
+Object.keys(snap.emps).forEach(id=>{if(!S.emps.some(e=>e.id===id)){delete snap.emps[id];deleteDoc(doc(db,"emps",id)).catch(wfail)}});
+S.lr.forEach(r=>{const k=dkey(r.rid),j=canon(r);if(snap.lr[k]!==j){snap.lr[k]=j;setDoc(doc(db,"lr",k),plain(r)).catch(wfail)}});
+Object.keys(snap.lr).forEach(k=>{if(!S.lr.some(r=>dkey(r.rid)===k)){delete snap.lr[k];deleteDoc(doc(db,"lr",k)).catch(wfail)}});
+const cj=canon(S.cfg);if(snap.cfg!==cj){snap.cfg=cj;setDoc(doc(db,"config","app"),plain(S.cfg)).catch(wfail)}
+}catch(x){wfail()}}
+clearTimeout(btimer);btimer=setTimeout(()=>bwrite(),1500)}
+function log(m){if(!meP)return Promise.resolve();return addDoc(collection(db,"logs"),{ts:Date.now(),t:new Date().toLocaleString("en-IN"),m:(me?me+": ":"")+m}).catch(()=>{})}
+const backupJson=()=>JSON.stringify({emps:S.emps,lr:S.lr,cfg:S.cfg,log:S.log});
+function oldData(){try{if(localStorage.getItem(KEY+"-imported"))return null;const o=JSON.parse(localStorage.getItem(KEY));return o&&o.emps&&o.emps.length?o:null}catch(x){return null}}
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");setTimeout(()=>t.classList.remove("on"),2200)}
 const emp=id=>S.emps.find(e=>e.id===id);
-const UK="hr-portal-users";let U=[];try{U=JSON.parse(localStorage.getItem(UK))||[]}catch(x){}
-if(!U.length)U=[{"name":"HR","user":"hr","role":"HR","salt":"k3x9hr","h":"2acbec46a1f1e7b5542f2023a0e895c79f9f92be8aa1536ef26f952bf92d4859","w":"w3143595171"},{"name":"Admin","user":"admin","role":"Admin","salt":"q7m2ad","h":"a11286eb25a0fad597e9735ad90dc8475e5169099f175dc8a69c4b1747be1662","w":"w3132514685"}];
-const usave=()=>{try{localStorage.setItem(UK,JSON.stringify(U))}catch(x){toast("Could not save accounts")}};
-let me=null,tries=0,lock=0;try{me=sessionStorage.getItem("hr-me")}catch(x){}
-const salt=()=>Math.random().toString(36).slice(2);
-async function hash(p,sl){const t=sl+":"+p;if(window.crypto&&crypto.subtle){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}let h=5381;for(const c of t)h=(h*33^c.charCodeAt(0))>>>0;return "w"+h}
-function setMe(u){me=u;try{u?sessionStorage.setItem("hr-me",u):sessionStorage.removeItem("hr-me")}catch(x){}}
+let me=null,meP=null,busy=false,justIn=false,setup=false,authReady=false,loadErr="",loaded=false,ready=0,unsubs=[];
+const firsts={};
+const authMsg=x=>{const c=(x&&x.code)||"";return /invalid-credential|wrong-password|user-not-found|invalid-email/.test(c)?"Wrong email or password":c==="auth/too-many-requests"?"Too many attempts. Wait a few minutes and try again":c==="auth/network-request-failed"?"No internet connection":c==="auth/email-already-in-use"?"That email is already registered. Use another email, or delete the old login in Firebase (Authentication, Users).":c==="auth/weak-password"?"Password is too weak. Use 8 or more characters":c==="permission-denied"?"You do not have permission to do that":"Something went wrong. Please try again"};
+function first(k){if(!firsts[k]){firsts[k]=1;ready++}if(!loaded&&ready>=5){loaded=true;render()}}
+function refresh(){if(!me||!loaded)return;const a=document.activeElement;if(a&&a.closest&&a.closest("#main")&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;render()}
+function stopListeners(){unsubs.forEach(f=>{try{f()}catch(x){}});unsubs=[];S={emps:[],lr:[],cfg:{},log:[],users:[]};snap.emps={};snap.lr={};snap.cfg="";for(const k in firsts)delete firsts[k];ready=0;loaded=false;loadErr="";clearTimeout(btimer)}
+function startListeners(){if(unsubs.length)return;
+const err=k=>e=>{loadErr="Could not read the shared database ("+((e&&e.code)||"error")+").";first(k);render()};
+unsubs=[
+onSnapshot(collection(db,"emps"),ss=>{let ch=false;const ids=new Set();ss.forEach(d=>{const e=d.data(),j=canon(e);ids.add(e.id);if(snap.emps[e.id]!==j){snap.emps[e.id]=j;const i=S.emps.findIndex(x=>x.id===e.id);if(i<0)S.emps.push(e);else S.emps[i]=e;ch=true}});
+Object.keys(snap.emps).forEach(id=>{if(!ids.has(id)){delete snap.emps[id];S.emps=S.emps.filter(x=>x.id!==id);ch=true}});
+S.emps.sort((a,b)=>(+String(a.id).slice(1))-(+String(b.id).slice(1)));first("emps");if(ch)refresh()},err("emps")),
+onSnapshot(collection(db,"lr"),ss=>{let ch=false;const ks=new Set();ss.forEach(d=>{const r=d.data(),j=canon(r);ks.add(d.id);if(snap.lr[d.id]!==j){snap.lr[d.id]=j;const i=S.lr.findIndex(x=>dkey(x.rid)===d.id);if(i<0)S.lr.push(r);else S.lr[i]=r;ch=true}});
+Object.keys(snap.lr).forEach(k=>{if(!ks.has(k)){delete snap.lr[k];S.lr=S.lr.filter(x=>dkey(x.rid)!==k);ch=true}});
+S.lr.sort((a,b)=>(b.at||0)-(a.at||0));first("lr");if(ch)refresh()},err("lr")),
+onSnapshot(doc(db,"config","app"),sn=>{const c=sn.exists()?sn.data():{},j=canon(c);let ch=false;if(snap.cfg!==j){snap.cfg=j;S.cfg=c;ch=true}first("cfg");if(ch)refresh()},err("cfg")),
+onSnapshot(collection(db,"users"),ss=>{S.users=ss.docs.map(d=>({uid:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(String(b.name)));first("users");if(v==="users")refresh()},err("users")),
+onSnapshot(query(collection(db,"logs"),orderBy("ts","desc"),limit(200)),ss=>{S.log=ss.docs.map(d=>d.data());first("logs");if(v==="log")refresh()},err("logs"))]}
 const DB=new Promise(r=>{try{const q=indexedDB.open("hr-files",1);q.onupgradeneeded=()=>q.result.createObjectStore("f");q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(x){r(null)}});
 async function fput(id,blob){const d=await DB;if(!d)throw 0;return new Promise((res,rej)=>{const t=d.transaction("f","readwrite");t.objectStore("f").put(blob,id);t.oncomplete=res;t.onerror=rej})}
 async function fget(id){const d=await DB;if(!d)throw 0;return new Promise((res,rej)=>{const q=d.transaction("f").objectStore("f").get(id);q.onsuccess=()=>res(q.result);q.onerror=rej})}
@@ -87,8 +112,8 @@ async function fdel(id){const d=await DB;if(d)d.transaction("f","readwrite").obj
 
 const BK="backup-dir",canDir=!!window.showDirectoryPicker;let bdir=null,bperm="none",btimer=null,blast="";try{blast=localStorage.getItem("hr-bk-last")||""}catch(x){}
 async function bfile(dir,name,data){const h=await dir.getFileHandle(name,{create:true}),w=await h.createWritable();await w.write(data);await w.close()}
-async function bwrite(){if(!bdir)return;try{if(await bdir.queryPermission({mode:"readwrite"})!=="granted"){bperm="prompt";return}
-const j=JSON.stringify(S);await bfile(bdir,"hr-backup-latest.json",j);await bfile(bdir,"hr-backup-"+today()+".json",j);
+async function bwrite(){if(!bdir||!meP||!loaded)return;try{if(await bdir.queryPermission({mode:"readwrite"})!=="granted"){bperm="prompt";return}
+const j=backupJson();await bfile(bdir,"hr-backup-latest.json",j);await bfile(bdir,"hr-backup-"+today()+".json",j);
 const fd=await bdir.getDirectoryHandle("files",{create:true});
 for(const e of S.emps)for(const k of Object.keys(L))for(const x of (e[k]||[])){if(!x.fid)continue;const nm=x.fid+"-"+String(x.fname||"file").replace(/[^\w.\- ]/g,"_");try{await fd.getFileHandle(nm)}catch(_){const bl=await fget(x.fid);if(bl)await bfile(fd,nm,bl)}}
 blast=new Date().toLocaleString("en-IN");try{localStorage.setItem("hr-bk-last",blast)}catch(x){}bperm="granted"}catch(x){toast("Could not write to the backup folder")}if(v==="rep")render()}
@@ -130,6 +155,7 @@ return `<div class="row"><h1>Employees</h1><button class="btn" id="add">Add empl
 <div class="sc" style="margin-top:10px"><table><thead><tr><th>ID</th><th>Name</th><th>Employment</th><th>Type</th><th>Team</th><th>Phone</th><th>Status</th></tr></thead><tbody>${l.map(e=>`<tr data-open="${e.id}"><td>${e.id}</td><td><b>${esc(e.name)}</b></td><td>${kindOf(e)}</td><td>${typeOf(e)||"-"}</td><td>${esc(e.team||"-")}</td><td>${esc(e.phone||"-")}</td><td><span class="tag ${e.status==="Resigned"?"b":e.status==="On leave"?"w":""}">${e.status}</span></td></tr>`).join("")||'<tr><td colspan="7" class="mute">No employees match. Clear the search or add a new employee.</td></tr>'}</tbody></table></div></div>`}
 function listTab(e,k){const c=L[k];let h="";
 if(k==="leave"){h+=linkBox(e);const m=today().slice(0,7),n={};e.leave.filter(x=>x.date&&x.date.startsWith(m)).forEach(x=>n[x.kind]=(n[x.kind]||0)+1);h+=`<p class="mute">This month: ${Object.entries(n).map(([a,b])=>a+" "+b).join(", ")||"no entries yet"}</p>`}
+if(k==="docs"||k==="notes")h+='<p class="mute">The entries are shared with everyone who signs in. Attached files stay on the computer where they were attached.</p>';
 h+=`<form class="add" data-k="${k}"><div class="grid">${c.f.map(f=>inp(f[0],f[1],f[2])).join("")}</div><p><button class="btn sm">Add entry</button></p></form>`;
 h+=`<div class="sc"><table><thead><tr>${c.f.map(f=>`<th>${f[1]}</th>`).join("")}<th></th></tr></thead><tbody>${e[k].map((x,i)=>`<tr>${c.f.map(f=>`<td>${f[0]==="file"?(x.fid?`<button class="btn sm g" data-view="${x.fid}">View</button> <span class="mute">${esc(x.fname)}</span> <button class="btn sm d" data-rf="${k}:${i}">Remove file</button>`:"-"):esc(x[f[0]]||"-")}</td>`).join("")}<td><button class="btn sm d" data-rm="${k}:${i}">Remove</button></td></tr>`).join("")||`<tr><td colspan="9" class="mute">No entries yet. Use the form above.</td></tr>`}</tbody></table></div>`;return h}
 function prof(){const e=emp(cur);if(!e)return list();
@@ -140,9 +166,10 @@ else if(tab==="life")b=`<form id="lf"><h3>Onboarding checklist</h3>${ONB.map(x=>
 else b=listTab(e,tab);
 return `<div class="row"><div><button class="btn g sm" id="back">All employees</button><h1 style="margin-top:10px">${esc(e.name||"New employee")}</h1><p class="sub" style="margin:2px 0 0">${e.id} · ${kindOf(e)} · ${typeOf(e)} · ${esc(e.team||"")}</p></div><button class="btn d sm" id="del">Delete employee</button></div>
 <div class="tabs">${tabs.map(t=>`<button class="btn sm ${t[0]===tab?"":"g"}" data-tab="${t[0]}">${t[1]}</button>`).join("")}</div><div class="panel">${b}</div>`}
+function impPanel(){const o=oldData();if(!o)return"";const n=o.emps.slice(0,4).map(e=>esc(e.name)).join(", ");return `<div class="panel"><h2>Import data saved in this browser</h2><p class="mute">Found ${o.emps.length} employee(s) saved in this browser before the shared database: ${n}${o.emps.length>4?", and more":""}. Import only from the computer where the real data was entered. Employees whose ID already exists in the shared database are skipped.</p><button class="btn" id="imp">Import into shared database</button></div>`}
 function rep(){return `<h1>Reports and backup</h1><p class="sub">Download your data or move it to another browser.</p>
 <div class="panel"><h2>Employee list</h2><p class="mute">Opens in Excel.</p><button class="btn" id="csv">Download employees (CSV)</button></div>
-<div class="panel"><h2>Backup</h2><p class="mute">Data lives in this browser only. The backup covers employee records but not attached files, so keep the original documents too.</p><button class="btn" id="bk">Download backup</button> <label class="btn g" style="display:inline-block">Restore backup<input type="file" id="rs" accept=".json" hidden></label></div>
+${impPanel()}<div class="panel"><h2>Backup</h2><p class="mute">Data is stored in the shared database. This backup file covers employee records but not attached files, so keep the original documents too. Restoring replaces the data for everyone.</p><button class="btn" id="bk">Download backup</button> <label class="btn g" style="display:inline-block">Restore backup<input type="file" id="rs" accept=".json" hidden></label></div>
 <div class="panel"><h2>Auto-backup to a folder</h2>${bkui()}</div>`}
 function logv(){return `<h1>Activity log</h1><p class="sub">The latest 200 changes.</p><div class="panel"><ul class="al">${S.log.map(x=>`<li style="cursor:default"><span>${esc(x.m)}</span><span class="mute">${x.t}</span></li>`).join("")||'<li class="mute" style="cursor:default">No changes yet.</li>'}</ul></div>`}
 function dl(name,txt,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click()}
@@ -156,15 +183,23 @@ return `<h1>Leave requests</h1><p class="sub">Employees fill in the leave form a
 <div class="panel"><h2>Add a request</h2><form id="lc"><label>Message from the employee<textarea name="code" rows="3" required></textarea></label><p><button class="btn sm">Add request</button></p></form></div>
 <div class="panel"><h2>Requests</h2><div class="sc"><table><thead><tr><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th><th></th></tr></thead><tbody>${S.lr.map(r=>`<tr><td><b>${esc(r.n||r.id)}</b></td><td>${r.type}</td><td>${fmt(r.from)}</td><td>${fmt(r.to)}</td><td>${ldays(r)}</td><td>${esc(r.why)}</td><td><span class="tag ${st[r.st]}">${r.st}</span></td><td>${r.st==="Pending"?`<button class="btn sm" data-ap="${r.rid}:Approved">Approve</button> <button class="btn sm d" data-ap="${r.rid}:Rejected">Reject</button>`:""}</td></tr>`).join("")||'<tr><td colspan="8" class="mute">No requests yet. Paste an employee’s message above.</td></tr>'}</tbody></table></div></div>
 <div class="panel"><h2>Leave link settings</h2><form id="cf"><div class="grid">${inp("addr","Web address of leave-request.html","url",S.cfg.addr)}${inp("hr","HR WhatsApp number with country code (optional)","tel",S.cfg.hr)}</div><p><button class="btn sm">Save settings</button></p></form></div>`}
-function loginV(){const f=!U.length;return `<div class="panel" style="max-width:380px;margin:8vh auto 0"><h1>${f?"Create the first account":"Sign in"}</h1><p class="sub">${f?"This account will be the admin. You can add HR accounts after you sign in.":"HR Portal"}</p><form id="lg">${f?inp("name","Your name","text"):""}${inp("user","Username","text")}${inp("pw","Password"+(f?" (8 or more characters)":""),"password")}<p><button class="btn">${f?"Create account":"Sign in"}</button></p></form></div>`}
-function usersV(){return `<h1>Users</h1><p class="sub">HR and admin accounts have the same access. Everyone listed here can sign in.</p>
-<div class="panel"><h2>Add a user</h2><form id="uf"><div class="grid">${inp("name","Name","text")}${inp("user","Username","text")}${inp("role","Role","select:HR,Admin")}${inp("pw","Password (8 or more characters)","password")}</div><p><button class="btn sm">Add user</button></p></form></div>
-<div class="panel"><div class="sc"><table><thead><tr><th>Name</th><th>Username</th><th>Role</th><th></th></tr></thead><tbody>${U.map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.user)}</td><td>${u.role}</td><td><button class="btn sm g" data-pw="${esc(u.user)}">Change password</button> ${u.user!==me?`<button class="btn sm d" data-ru="${esc(u.user)}">Remove</button>`:'<span class="mute">You</span>'}</td></tr>`).join("")}</tbody></table></div></div>`}
-function render(){if(me&&!U.find(u=>u.user===me))setMe(null);$(".app").classList.toggle("out",!me);if(!me){$("#main").innerHTML=loginV();bind();return}$("#out").textContent="Sign out ("+me+")";$$("nav button").forEach(b=>b.setAttribute("aria-current",b.dataset.v===(v==="prof"?"list":v)));
+function loginV(){const box='<div class="panel" style="max-width:380px;margin:8vh auto 0">';
+if(!authReady)return box+'<p class="mute">Loading...</p></div>';
+if(setup)return box+`<h1>Set up the first admin</h1><p class="sub">Use this only once, on a brand new portal. This account becomes the admin and can add HR accounts afterwards.</p><form id="su">${inp("name","Your name","text")}${inp("email","Email","email")}${inp("pw","Password (8 or more characters)","password")}<p><button class="btn">Create admin account</button> <button type="button" class="btn g" id="sback">Back</button></p></form></div>`;
+return box+`<h1>Sign in</h1><p class="sub">HR Portal</p><form id="lg">${inp("email","Email","email")}${inp("pw","Password","password")}<p><button class="btn">Sign in</button></p></form><p class="mute"><a href="#" id="forgot">Forgot password?</a> &middot; <a href="#" id="first">First time setup</a></p></div>`}
+function errV(){return `<div class="panel" style="max-width:560px;margin:6vh auto 0"><h1>Could not open the database</h1><p class="sub">${esc(loadErr)}</p><p>This usually means the Firestore security rules have not been published yet. In Firebase, open Firestore Database, then Rules, paste the rules and click Publish. Then reload this page.</p><p><button class="btn" id="retry">Reload</button></p></div>`}
+function usersV(){const adm=meP&&meP.role==="Admin";
+return `<h1>Users</h1><p class="sub">${adm?"Add HR and admin accounts here. Each person signs in with their own email and password.":"Only an admin can add or remove accounts."}</p>
+${adm?`<div class="panel"><h2>Add a user</h2><form id="uf"><div class="grid">${inp("name","Name","text")}${inp("email","Email","email")}${inp("role","Role","select:HR,Admin")}${inp("pw","Temporary password (8 or more characters)","password")}</div><p><button class="btn sm">Add user</button></p></form></div>`:""}
+<div class="panel"><div class="sc"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr></thead><tbody>${S.users.map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${esc(u.role)}</td><td>${adm?`<button class="btn sm g" data-pw="${esc(u.email)}">Send password reset</button> ${u.uid!==meP.uid?`<button class="btn sm d" data-ru="${esc(u.uid)}">Remove</button>`:'<span class="mute">You</span>'}`:(u.uid===meP.uid?'<span class="mute">You</span>':"")}</td></tr>`).join("")}</tbody></table></div></div>`}
+function render(){$(".app").classList.toggle("out",!me);if(!me){$("#main").innerHTML=loginV();bind();return}$("#out").textContent="Sign out ("+me+")";
+if(loadErr){$("#main").innerHTML=errV();bind();return}
+if(!loaded){$("#main").innerHTML='<p class="mute">Loading data...</p>';return}
+$$("nav button").forEach(b=>b.setAttribute("aria-current",b.dataset.v===(v==="prof"?"list":v)));
 $("#main").innerHTML=({dash,list,prof,rep,log:logv,users:usersV,lv:lvV})[v]();bind()}
 function bind(){
 $$("[data-open]").forEach(r=>r.onclick=()=>{cur=r.dataset.open;v="prof";tab="details";render()});
-$$("[data-view]").forEach(b=>b.onclick=async()=>{try{const bl=await fget(b.dataset.view);if(!bl)throw 0;window.open(URL.createObjectURL(bl),"_blank")}catch(x){toast("File not found in this browser")}});
+$$("[data-view]").forEach(b=>b.onclick=async()=>{try{const bl=await fget(b.dataset.view);if(!bl)throw 0;window.open(URL.createObjectURL(bl),"_blank")}catch(x){toast("This file is not in this browser. It was attached on another computer.")}});
 $$("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render()});
 const g=s=>$(s);
 if(g("#q"))g("#q").oninput=ev=>{q=ev.target.value;const p=ev.target.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(p,p)};
@@ -193,33 +228,49 @@ $$("[data-rf]").forEach(b=>b.onclick=()=>{const[k,i]=b.dataset.rf.split(":"),e=e
 $$("[data-rm]").forEach(b=>b.onclick=()=>{const[k,i]=b.dataset.rm.split(":"),e=emp(cur),x=e[k].splice(+i,1)[0];if(x&&x.fid)fdel(x.fid);log("Removed "+k+" entry for "+e.name);save();render()});
 if(g("#lf"))g("#lf").onsubmit=ev=>{ev.preventDefault();const e=emp(cur);e.onb={};e.ex={};$$("#lf [data-c]").forEach(c=>{e[c.dataset.c][c.value]=c.checked});e.exitDate=$("#lf [name=exitDate]").value;e.notice=$("#lf [name=notice]").value;log("Updated checklists of "+e.name);save();toast("Checklists saved")};
 if(g("#csv"))g("#csv").onclick=()=>{const k=["id","name","kind","type","status","team","mgr","phone","email","joined","contractEnd","salary","bankName","bank","ifsc","emerg","erel","ephone","emerg2","erel2","ephone2"];dl("employees.csv",[k.join(",")].concat(S.emps.map(e=>k.map(x=>'"'+String(e[x]??"").replace(/"/g,'""')+'"').join(","))).join("\n"),"text/csv")};
-if(g("#bk"))g("#bk").onclick=()=>dl("hr-backup-"+today()+".json",JSON.stringify(S),"application/json");
+if(g("#bk"))g("#bk").onclick=()=>dl("hr-backup-"+today()+".json",backupJson(),"application/json");
 if(g("#bpick"))g("#bpick").onclick=async()=>{try{const d=await showDirectoryPicker({mode:"readwrite"});bdir=d;await fput(BK,d);bperm="granted";log("Turned on folder backup");save();await bwrite();toast("Backup folder set")}catch(x){if(!x||x.name!=="AbortError")toast("Could not use that folder")}render()};
 if(g("#bre"))g("#bre").onclick=async()=>{try{bperm=await bdir.requestPermission({mode:"readwrite"});if(bperm==="granted")await bwrite()}catch(x){}render()};
 if(g("#bnow"))g("#bnow").onclick=async()=>{await bwrite();toast("Backup done")};
 if(g("#bstop"))g("#bstop").onclick=()=>{if(confirm("Stop auto-backup? Files already in the folder stay there.")){bdir=null;fdel(BK);log("Turned off folder backup");save();render()}};
-if(g("#rs"))g("#rs").onchange=ev=>{const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.emps)throw 0;S=d;log("Restored backup");save();toast("Backup restored");render()}catch(x){toast("That file is not a valid backup")}};r.readAsText(f)}
+if(g("#rs"))g("#rs").onchange=ev=>{const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.emps)throw 0;if(!confirm("Restoring replaces ALL employee data for everyone with the contents of this file. Continue?"))return;S.emps=d.emps.map(mk);S.lr=d.lr||[];if(d.cfg)S.cfg=d.cfg;log("Restored backup");save();toast("Backup restored");render()}catch(x){toast("That file is not a valid backup")}};r.readAsText(f)}
+if(g("#imp"))g("#imp").onclick=()=>{const o=oldData();if(!o)return;const have=new Set(S.emps.map(e=>e.id));let n=0,k=0;o.emps.forEach(e=>{if(have.has(e.id))k++;else{S.emps.push(mk(e));n++}});const hr=new Set(S.lr.map(r=>r.rid));(o.lr||[]).forEach(r=>{if(!hr.has(r.rid))S.lr.push(r)});if(o.cfg&&!S.cfg.addr&&!S.cfg.hr)S.cfg=o.cfg;log("Imported "+n+" employees from this browser");save();try{localStorage.setItem(KEY+"-imported","1")}catch(x){}toast(n+" imported"+(k?", "+k+" skipped (ID already exists)":""));render()};
 if(g("#cf"))g("#cf").onsubmit=ev=>{ev.preventDefault();const d=Object.fromEntries(new FormData(ev.target));S.cfg.addr=d.addr.trim();S.cfg.hr=d.hr.replace(/\D/g,"");log("Updated leave link settings");save();toast("Settings saved");render()};
 if(g("#lc"))g("#lc").onsubmit=ev=>{ev.preventDefault();let r;try{const m=new FormData(ev.target).get("code").match(/LR1:([A-Za-z0-9+\/=]+)/);r=JSON.parse(decodeURIComponent(escape(atob(m[1]))));if(!r.rid||!r.id||!r.from||!r.to)throw 0}catch(x){return toast("That message is not valid. Ask the employee to send it again.")}
 if(!emp(r.id))return toast("No employee with ID "+r.id+" in this portal");
 if(S.lr.find(x=>x.rid===r.rid))return toast("That request was already added");
-r.st="Pending";S.lr.unshift(r);log("Added leave request from "+(r.n||r.id));save();toast("Request added");render()};
+r.st="Pending";r.at=Date.now();S.lr.unshift(r);log("Added leave request from "+(r.n||r.id));save();toast("Request added");render()};
 $$("[data-ap]").forEach(b=>b.onclick=()=>{const[id,st]=b.dataset.ap.split(":"),r=S.lr.find(x=>x.rid===id),e=emp(r.id);r.st=st;
 if(st==="Approved"&&e){const kind={"Unpaid leave":"Absent"}[r.type]||r.type,a=new Date(r.from+"T00:00");for(let i=0;i<ldays(r)&&i<62;i++){const d=new Date(a);d.setDate(a.getDate()+i);e.leave.push({date:d.toISOString().slice(0,10),kind,note:"Leave request: "+r.why})}}
 log(st+" leave of "+(r.n||r.id));save();toast(st);render()});
 $$("[data-copy]").forEach(b=>b.onclick=()=>{try{navigator.clipboard.writeText(b.dataset.copy);toast("Link copied")}catch(x){toast("Select the link and copy it")}});
-if(g("#lg"))g("#lg").onsubmit=async ev=>{ev.preventDefault();const d=Object.fromEntries(new FormData(ev.target)),user=(d.user||"").trim().toLowerCase();
-if(!U.length){if(!d.name||!user||d.pw.length<8)return toast("Enter your name, a username and a password of 8 or more characters");const sl=salt();U.push({name:d.name.trim(),user,role:"Admin",salt:sl,h:await hash(d.pw,sl)});usave();setMe(user);log("Created the first account");save();v="dash";render();return}
-if(Date.now()<lock)return toast("Too many attempts. Wait a minute and try again");
-const u=U.find(x=>x.user===user);if(u&&(x=>u.h===x||u.w===x)(await hash(d.pw,u.salt))){tries=0;setMe(user);log("Signed in");save();v="dash";render()}else{if(++tries>=5){lock=Date.now()+60000;tries=0}toast("Wrong username or password")}};
-if(g("#uf"))g("#uf").onsubmit=async ev=>{ev.preventDefault();const d=Object.fromEntries(new FormData(ev.target)),user=(d.user||"").trim().toLowerCase();
-if(!d.name||!user||d.pw.length<8)return toast("Enter a name, a username and a password of 8 or more characters");
-if(U.find(x=>x.user===user))return toast("That username is already taken");
-const sl=salt();U.push({name:d.name.trim(),user,role:d.role,salt:sl,h:await hash(d.pw,sl)});usave();log("Added user "+user+" ("+d.role+")");save();toast("User added");render()};
-$$("[data-pw]").forEach(b=>b.onclick=async()=>{const pw=prompt("New password for "+b.dataset.pw+" (8 or more characters)");if(!pw)return;if(pw.length<8)return toast("Password must be 8 or more characters");const u=U.find(x=>x.user===b.dataset.pw);u.salt=salt();u.h=await hash(pw,u.salt);delete u.w;usave();log("Changed password of "+u.user);save();toast("Password changed")});
-$$("[data-ru]").forEach(b=>b.onclick=()=>{if(confirm("Remove user "+b.dataset.ru+"?")){U=U.filter(x=>x.user!==b.dataset.ru);usave();log("Removed user "+b.dataset.ru);save();render()}});
+if(g("#retry"))g("#retry").onclick=()=>location.reload();
+if(g("#first"))g("#first").onclick=ev=>{ev.preventDefault();setup=true;render()};
+if(g("#sback"))g("#sback").onclick=()=>{setup=false;render()};
+if(g("#forgot"))g("#forgot").onclick=async ev=>{ev.preventDefault();const em=(prompt("Enter your account email. We will send a link to reset the password.")||"").trim();if(!em)return;try{await sendPasswordResetEmail(auth,em)}catch(x){}toast("If that email has an account, a reset link has been sent")};
+if(g("#lg"))g("#lg").onsubmit=async ev=>{ev.preventDefault();const d=Object.fromEntries(new FormData(ev.target));try{justIn=true;await signInWithEmailAndPassword(auth,(d.email||"").trim(),d.pw)}catch(x){justIn=false;toast(authMsg(x))}};
+if(g("#su"))g("#su").onsubmit=async ev=>{ev.preventDefault();const d=Object.fromEntries(new FormData(ev.target)),em=(d.email||"").trim(),nm=(d.name||"").trim();
+if(!nm||!em||d.pw.length<8)return toast("Enter your name, an email and a password of 8 or more characters");
+busy=true;let cu=null;
+try{const c=await createUserWithEmailAndPassword(auth,em,d.pw);cu=c.user;const b=writeBatch(db);b.set(doc(db,"users",cu.uid),{name:nm,email:em,role:"Admin"});b.set(doc(db,"config","bootstrap"),{by:cu.uid,at:Date.now()});await b.commit();
+busy=false;meP={uid:cu.uid,name:nm,email:em,role:"Admin"};me=nm;authReady=true;setup=false;log("Created the first account");startListeners();v="dash";render()}
+catch(x){busy=false;if(cu){try{await deleteUser(cu)}catch(_){try{await signOut(auth)}catch(_2){}}}toast((x&&String(x.code).startsWith("auth/"))?authMsg(x):"Setup is already done, or the Firestore rules are not published yet. Try signing in instead.")}};
+if(g("#uf"))g("#uf").onsubmit=async ev=>{ev.preventDefault();const d=Object.fromEntries(new FormData(ev.target)),em=(d.email||"").trim().toLowerCase(),nm=(d.name||"").trim();
+if(!nm||!em||d.pw.length<8)return toast("Enter a name, an email and a password of 8 or more characters");
+let a2=null;try{a2=initializeApp(firebaseConfig,"second"+Date.now());const au2=getAuth(a2);const c=await createUserWithEmailAndPassword(au2,em,d.pw);await setDoc(doc(db,"users",c.user.uid),{name:nm,email:em,role:d.role});await signOut(au2);log("Added user "+em+" ("+d.role+")");toast("User added. Share the email and temporary password with them.");render()}catch(x){toast(authMsg(x))}finally{if(a2)deleteApp(a2).catch(()=>{})}};
+$$("[data-pw]").forEach(b=>b.onclick=async()=>{try{await sendPasswordResetEmail(auth,b.dataset.pw);log("Sent password reset to "+b.dataset.pw);toast("Reset link sent to "+b.dataset.pw)}catch(x){toast(authMsg(x))}});
+$$("[data-ru]").forEach(b=>b.onclick=async()=>{const u=S.users.find(x=>x.uid===b.dataset.ru);if(!u)return;if(confirm("Remove "+u.name+"? They will no longer be able to open the portal.")){try{await deleteDoc(doc(db,"users",u.uid));log("Removed user "+u.email);toast("User removed")}catch(x){toast(authMsg(x))}}});
 }
-$$("nav button").forEach(b=>b.onclick=()=>{v=b.dataset.v;if(v==="out"){log("Signed out");save();setMe(null);v="dash"}render()});
+$$("nav button").forEach(b=>b.onclick=async()=>{v=b.dataset.v;if(v==="out"){v="dash";try{await log("Signed out")}catch(x){}try{await signOut(auth)}catch(x){}return}render()});
+try{await setPersistence(auth,browserSessionPersistence)}catch(x){}
+onAuthStateChanged(auth,async u=>{if(busy)return;
+if(!u){stopListeners();meP=null;me=null;setup=false;authReady=true;render();return}
+try{const sn=await getDoc(doc(db,"users",u.uid));
+if(!sn.exists()){justIn=false;try{await signOut(auth)}catch(x){}toast("This account has no access to the portal. Ask the admin to add you.");return}
+meP={uid:u.uid,...sn.data()};me=meP.name||u.email;authReady=true;
+if(justIn){justIn=false;log("Signed in")}
+startListeners();render()}
+catch(x){justIn=false;try{await signOut(auth)}catch(_){}authReady=true;toast("Could not load your account. Check that the Firestore rules are published.")}});
 render();
 </script>
 </body>
