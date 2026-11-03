@@ -41,7 +41,36 @@ tr[data-open]{cursor:pointer}tr[data-open]:hover{background:var(--bg)}
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .2s}#toast.on{opacity:1}
 #slip{display:none}
 @media print{body>*:not(#slip){display:none!important}#slip{display:block;color:#000;background:#fff;padding:24px}#slip td{border:1px solid #999}}
-@media (max-width:700px){.app{grid-template-columns:1fr}nav{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line)}.brand{display:none}nav button{white-space:nowrap}}
+html{-webkit-text-size-adjust:100%}button,.btn,nav button,.tabs button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+@media (max-width:700px){
+body{font-size:15px}
+.app{grid-template-columns:1fr}
+nav{position:sticky;top:0;z-index:20;flex-direction:row;align-items:center;gap:2px;overflow-x:auto;padding:6px 8px;border-right:0;border-bottom:1px solid var(--line);scrollbar-width:none}
+nav::-webkit-scrollbar,.tabs::-webkit-scrollbar{display:none}
+.brand{display:none}
+nav button{white-space:nowrap;padding:10px 13px;flex:0 0 auto}
+#out{margin-top:0;margin-left:auto}
+main{padding:16px 12px 40px}
+h1{font-size:23px}h2{font-size:17px}
+.sub{margin:4px 0 14px}
+.panel{padding:12px;border-radius:8px}
+.grid{grid-template-columns:1fr}
+.grid:has(>.stat){grid-template-columns:1fr 1fr}
+.stat b{font-size:26px}
+input,select,textarea{font-size:16px;padding:10px 11px}
+input[type=checkbox]{width:20px;height:20px}
+.btn{min-height:42px;padding:10px 16px}
+.btn.sm{min-height:38px;padding:8px 12px}
+.tabs{scrollbar-width:none;margin:12px -12px;padding:0 12px}
+.tabs button{flex:0 0 auto}
+.chk{padding:10px 0}
+.al li{padding:12px 0}
+th,td{padding:10px 8px}
+.lst th:nth-child(3),.lst td:nth-child(3),.lst th:nth-child(5),.lst td:nth-child(5),.lst th:nth-child(6),.lst td:nth-child(6){display:none}
+#toast{left:12px;right:12px;transform:none;bottom:calc(14px + env(safe-area-inset-bottom,0px));text-align:center}
+.row{gap:8px}
+}
+@media (max-width:360px){.grid:has(>.stat){grid-template-columns:1fr}}
 .app.out{grid-template-columns:1fr}.app.out nav{display:none}#out{margin-top:auto}
 </style>
 </head>
@@ -152,7 +181,7 @@ return `<h1>Dashboard</h1><p class="sub">Headcount and things that need attentio
 function list(){const l=S.emps.filter(e=>(e.name+e.id+(e.team||"")).toLowerCase().includes(q.toLowerCase())&&(!ft||typeOf(e)===ft)&&(!fk||kindOf(e)===fk));
 return `<div class="row"><h1>Employees</h1><button class="btn" id="add">Add employee</button></div><p class="sub">Click a row to open the full profile.</p>
 <div class="panel"><div class="grid"><label>Search<input id="q" value="${esc(q)}" placeholder="Name, ID or team"></label><label>Employment<select id="fk"><option value="">All</option>${KINDS.map(t=>`<option${t===fk?" selected":""}>${t}</option>`).join("")}</select></label><label>Type<select id="ft"><option value="">All types</option>${TYPES.map(t=>`<option${t===ft?" selected":""}>${t}</option>`).join("")}</select></label></div>
-<div class="sc" style="margin-top:10px"><table><thead><tr><th>ID</th><th>Name</th><th>Employment</th><th>Type</th><th>Team</th><th>Phone</th><th>Status</th></tr></thead><tbody>${l.map(e=>`<tr data-open="${e.id}"><td>${e.id}</td><td><b>${esc(e.name)}</b></td><td>${kindOf(e)}</td><td>${typeOf(e)||"-"}</td><td>${esc(e.team||"-")}</td><td>${esc(e.phone||"-")}</td><td><span class="tag ${e.status==="Resigned"?"b":e.status==="On leave"?"w":""}">${e.status}</span></td></tr>`).join("")||'<tr><td colspan="7" class="mute">No employees match. Clear the search or add a new employee.</td></tr>'}</tbody></table></div></div>`}
+<div class="sc" style="margin-top:10px"><table class="lst"><thead><tr><th>ID</th><th>Name</th><th>Employment</th><th>Type</th><th>Team</th><th>Phone</th><th>Status</th></tr></thead><tbody>${l.map(e=>`<tr data-open="${e.id}"><td>${e.id}</td><td><b>${esc(e.name)}</b></td><td>${kindOf(e)}</td><td>${typeOf(e)||"-"}</td><td>${esc(e.team||"-")}</td><td>${esc(e.phone||"-")}</td><td><span class="tag ${e.status==="Resigned"?"b":e.status==="On leave"?"w":""}">${e.status}</span></td></tr>`).join("")||'<tr><td colspan="7" class="mute">No employees match. Clear the search or add a new employee.</td></tr>'}</tbody></table></div></div>`}
 function listTab(e,k){const c=L[k];let h="";
 if(k==="leave"){h+=linkBox(e);const m=today().slice(0,7),n={};e.leave.filter(x=>x.date&&x.date.startsWith(m)).forEach(x=>n[x.kind]=(n[x.kind]||0)+1);h+=`<p class="mute">This month: ${Object.entries(n).map(([a,b])=>a+" "+b).join(", ")||"no entries yet"}</p>`}
 if(k==="docs"||k==="notes")h+='<p class="mute">The entries are shared with everyone who signs in. Attached files stay on the computer where they were attached.</p>';
