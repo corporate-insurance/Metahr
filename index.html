@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HR Portal</title>
+<title>Meta Fintech HR Portal</title>
+<link rel="icon" href="logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Public+Sans:wght@400;500;600&display=swap">
 <style>
 :root{--bg:#f2f4f1;--sf:#fff;--ink:#1c2a29;--mute:#5d6b69;--line:#d9dfdb;--ac:#2f4bd0;--aci:#fff;--okc:#1f7a4d;--okb:#e2f3ea;--wc:#a86a00;--wb:#fbefd5;--bc:#b3362b;--bb:#f8e1de}
@@ -75,10 +76,16 @@ th,td{padding:10px 8px}
 input:disabled,select:disabled,textarea:disabled{opacity:1;color:var(--ink);-webkit-text-fill-color:var(--ink);background:transparent;border-color:transparent;cursor:default}
 select:disabled{appearance:none;-webkit-appearance:none}
 input[type=checkbox]:disabled{opacity:.7}
+.logo{height:28px;max-width:140px;object-fit:contain;background:#fff;border-radius:6px;padding:3px 6px;vertical-align:middle;margin-right:8px}
+.ph{display:flex;align-items:center;gap:14px;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px}
+.ph img{height:56px;max-width:180px;object-fit:contain}
+.ph h1{margin:0;font-size:22px}
+.ph p{margin:2px 0 0;font-size:12px}
+#slip table{border-collapse:collapse;width:100%}#slip td{padding:6px 10px}
 </style>
 </head>
 <body>
-<div class="app"><nav aria-label="Main"><div class="brand">HR Portal</div>
+<div class="app"><nav aria-label="Main"><div class="brand"><img class="logo" src="logo.png" alt="" onerror="this.remove()">HR Portal</div>
 <button data-v="dash">Dashboard</button><button data-v="list">Employees</button><button data-v="rep">Reports and backup</button><button data-v="log">Activity log</button><button data-v="lv">Leave requests</button><button data-v="users">Users</button><button data-v="out" id="out">Sign out</button></nav>
 <main id="main"></main></div>
 <div id="slip"></div><div id="toast" role="status"></div>
@@ -162,14 +169,18 @@ const F=[["Personal details","name","Full name","text"],["","dob","Date of birth
 const DOCS=["Aadhaar card","PAN card","Address proof","Passport","Voter ID","Driving licence","Passport size photo","Education qualification","Experience or relieving letter","Previous salary slips","Certification","Professional licence","Bank passbook or cancelled cheque","Resume","Offer letter (signed)","Appointment letter","Police verification","Background check report","Medical fitness certificate","PF or UAN form","ESI form","Employment agreement or NDA","Other document"];
 const L={leave:{t:"Leave and attendance",f:[["date","Date","date"],["kind","Type","select:Present,Absent,Paid leave,Sick leave,Half day"],["note","Note","text"]]},
 inc:{t:"Incentives",f:[["month","Month","month"],["target","Target","number"],["ach","Achieved","number"],["amt","Incentive (INR)","number"]]},
-docs:{t:"Documents and KYC",f:[["name","Document","select:"+DOCS.join(",")],["no","Details (number, or name if Other)","text"],["status","Status","select:Collected,Pending,Verified"],["exp","Expiry (if any)","date"],["file","Attach file (up to 10 MB)","file"]]},
+docs:{t:"Documents and KYC",f:[["name","Document","select:"+DOCS.join(",")],["no","Details (number, or name if Other)","text"],["status","Status","select:Collected,Pending,Verified"],["exp","Expiry (if any)","date"],["link","Google Drive link (paste the file link)","url"]]},
 assets:{t:"Assets",f:[["item","Item (laptop, SIM, ID card)","text"],["issued","Issued on","date"],["ret","Returned on","date"]]},
 train:{t:"Training",f:[["name","Training","text"],["date","Completed on","date"]]},
-notes:{t:"Warnings and notes",f:[["date","Date","date"],["note","Note","text"],["file","Attach file (up to 10 MB)","file"]]}};
+notes:{t:"Warnings and notes",f:[["date","Date","date"],["note","Note","text"],["link","Google Drive link (paste the file link)","url"]]}};
 const ONB=["Documents collected","KYC and background check done","ID card issued","System access given","Training completed","Offer letter signed"];
 const EXIT=["Resignation accepted","Handover done","Assets returned","Final settlement paid","Experience letter issued"];
 let v="dash",cur=null,tab="details",q="",ft="",fk="";
 let editing=false;
+const CO={name:"Meta Fintech",addr:"57, Kengal Hanumanthaiah Rd, Sudhama Nagar, Bengaluru, Karnataka 560027",phone:"+91 77609 67403",email:"shylesh@metafintech.in",logo:"logo.png"};
+const LOGO=`<img class="logo" src="${CO.logo}" alt="" style="height:44px" onerror="this.remove()">`;
+const inr=n=>"₹"+(+n||0).toLocaleString("en-IN");
+let slipM=(()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")})();
 const ROLES=["Admin","HR","Accounts"],PAYF=new Set(["salary","pf","esi","tds","bankName","bank","ifsc","pan","uan"]);
 const fullEdit=()=>!!meP&&(meP.role==="Admin"||meP.role==="HR");
 const canTab=t=>fullEdit()||(!!meP&&meP.role==="Accounts"&&(t==="details"||t==="inc"));
@@ -191,15 +202,18 @@ function list(){const l=S.emps.filter(e=>(e.name+e.id+(e.team||"")).toLowerCase(
 return `<div class="row"><h1>Employees</h1>${fullEdit()?'<button class="btn" id="add">Add employee</button>':""}</div><p class="sub">Click a row to open the full profile.</p>
 <div class="panel"><div class="grid"><label>Search<input id="q" value="${esc(q)}" placeholder="Name, ID or team"></label><label>Employment<select id="fk"><option value="">All</option>${KINDS.map(t=>`<option${t===fk?" selected":""}>${t}</option>`).join("")}</select></label><label>Type<select id="ft"><option value="">All types</option>${TYPES.map(t=>`<option${t===ft?" selected":""}>${t}</option>`).join("")}</select></label></div>
 <div class="sc" style="margin-top:10px"><table class="lst"><thead><tr><th>ID</th><th>Name</th><th>Employment</th><th>Type</th><th>Team</th><th>Phone</th><th>Status</th></tr></thead><tbody>${l.map(e=>`<tr data-open="${e.id}"><td>${e.id}</td><td><b>${esc(e.name)}</b></td><td>${kindOf(e)}</td><td>${typeOf(e)||"-"}</td><td>${esc(e.team||"-")}</td><td>${esc(e.phone||"-")}</td><td><span class="tag ${e.status==="Resigned"?"b":e.status==="On leave"?"w":""}">${e.status}</span></td></tr>`).join("")||'<tr><td colspan="7" class="mute">No employees match. Clear the search or add a new employee.</td></tr>'}</tbody></table></div></div>`}
+function cell(x,k,i){let h="";if(x.link)h+=/^https:\/\//i.test(x.link)?`<a class="btn sm g" style="text-decoration:none" href="${esc(x.link)}" target="_blank" rel="noopener noreferrer">Open in Drive</a>`:esc(x.link);
+if(x.fid)h+=(h?" ":"")+`<button class="btn sm g" data-view="${x.fid}">View</button> <span class="mute">${esc(x.fname)} (old file, saved on one computer)</span>`+(ed()?` <button class="btn sm d" data-rf="${k}:${i}">Remove file</button>`:"");
+return h||"-"}
 function listTab(e,k){const c=L[k];let h="";
 if(k==="leave"){h+=linkBox(e);const m=today().slice(0,7),n={};e.leave.filter(x=>x.date&&x.date.startsWith(m)).forEach(x=>n[x.kind]=(n[x.kind]||0)+1);h+=`<p class="mute">This month: ${Object.entries(n).map(([a,b])=>a+" "+b).join(", ")||"no entries yet"}</p>`}
-if(k==="docs"||k==="notes")h+='<p class="mute">The entries are shared with everyone who signs in. Attached files stay on the computer where they were attached.</p>';
+if(k==="docs"||k==="notes")h+='<p class="mute">The entries are shared with everyone who signs in. Keep the files in the shared Drive folder and paste each file’s link here.</p>';
 if(ed())h+=`<form class="add" data-k="${k}"><div class="grid">${c.f.map(f=>inp(f[0],f[1],f[2])).join("")}</div><p><button class="btn sm">Add entry</button></p></form>`;
-h+=`<div class="sc"><table><thead><tr>${c.f.map(f=>`<th>${f[1]}</th>`).join("")}<th></th></tr></thead><tbody>${e[k].map((x,i)=>`<tr>${c.f.map(f=>`<td>${f[0]==="file"?(x.fid?`<button class="btn sm g" data-view="${x.fid}">View</button> <span class="mute">${esc(x.fname)}</span>${ed()?` <button class="btn sm d" data-rf="${k}:${i}">Remove file</button>`:""}`:"-"):esc(x[f[0]]||"-")}</td>`).join("")}<td>${ed()?`<button class="btn sm d" data-rm="${k}:${i}">Remove</button>`:""}</td></tr>`).join("")||`<tr><td colspan="9" class="mute">No entries yet.${ed()?" Use the form above.":""}</td></tr>`}</tbody></table></div>`;return h}
+h+=`<div class="sc"><table><thead><tr>${c.f.map(f=>`<th>${f[1]}</th>`).join("")}<th></th></tr></thead><tbody>${e[k].map((x,i)=>`<tr>${c.f.map(f=>`<td>${f[0]==="link"?cell(x,k,i):esc(x[f[0]]||"-")}</td>`).join("")}<td>${ed()?`<button class="btn sm d" data-rm="${k}:${i}">Remove</button>`:""}</td></tr>`).join("")||`<tr><td colspan="9" class="mute">No entries yet.${ed()?" Use the form above.":""}</td></tr>`}</tbody></table></div>`;return h}
 function prof(){const e=emp(cur);if(!e)return list();
 const tabs=[["details","Details"],["leave","Leave"],["inc","Incentives"],["docs","Documents"],["assets","Assets"],["train","Training"],["notes","Warnings and notes"],["life","Onboarding and exit"]].filter(t=>t[0]!=="inc"||SALES.includes(e.type));
 let b="";
-if(tab==="details"){b=`<form id="df"><div class="grid">${F.filter(f=>!f[4]||(f[4]==="@Contract"?kindOf(e)==="Contract":f[4].includes(typeOf(e)))).map(f=>(f[0]?`<h3 style="grid-column:1/-1">${f[0]}</h3>`:"")+inp(f[1],f[2],f[3],f[1]==="kind"?kindOf(e):f[1]==="type"?typeOf(e):e[f[1]])).join("")}</div><p>${ed()?'<button class="btn">Save details</button> ':''}<button type="button" class="btn g" id="slipb">Print payslip</button></p></form>`}
+if(tab==="details"){b=`<form id="df"><div class="grid">${F.filter(f=>!f[4]||(f[4]==="@Contract"?kindOf(e)==="Contract":f[4].includes(typeOf(e)))).map(f=>(f[0]?`<h3 style="grid-column:1/-1">${f[0]}</h3>`:"")+inp(f[1],f[2],f[3],f[1]==="kind"?kindOf(e):f[1]==="type"?typeOf(e):e[f[1]])).join("")}</div><p>${ed()?'<button class="btn">Save details</button> ':''}<label style="display:inline-block;margin-right:8px">Payslip month <input type="month" id="slipm" value="${slipM}" style="width:auto"></label><button type="button" class="btn g" id="slipb">Print payslip</button></p></form>`}
 else if(tab==="life")b=`<form id="lf"><h3>Onboarding checklist</h3>${ONB.map(x=>`<label class="chk"><input type="checkbox" data-c="onb" value="${x}"${e.onb[x]?" checked":""}>${x}</label>`).join("")}<h3>Exit process</h3><div class="grid">${inp("exitDate","Last working day","date",e.exitDate)}${inp("notice","Notice period (days)","number",e.notice)}</div>${EXIT.map(x=>`<label class="chk"><input type="checkbox" data-c="ex" value="${x}"${e.ex[x]?" checked":""}>${x}</label>`).join("")}${ed()?'<p><button class="btn">Save checklists</button></p>':''}</form>`;
 else b=listTab(e,tab);
 return `<div class="row"><div><button class="btn g sm" id="back">All employees</button><h1 style="margin-top:10px">${esc(e.name||"New employee")}</h1><p class="sub" style="margin:2px 0 0">${e.id} · ${kindOf(e)} · ${typeOf(e)} · ${esc(e.team||"")}</p></div><div>${canTab(tab)?`<button class="btn sm ${editing?"g":""}" id="editb">${editing?"Done editing":"Edit"}</button> `:""}${editing&&fullEdit()?'<button class="btn d sm" id="del">Delete employee</button>':""}</div></div>
@@ -224,7 +238,7 @@ ${fullEdit()?`<div class="panel"><h2>Leave link settings</h2><form id="cf"><div 
 function loginV(){const box='<div class="panel" style="max-width:380px;margin:8vh auto 0">';
 if(!authReady)return box+'<p class="mute">Loading...</p></div>';
 if(setup)return box+`<h1>Set up the first admin</h1><p class="sub">Use this only once, on a brand new portal. This account becomes the admin and can add HR accounts afterwards.</p><form id="su">${inp("name","Your name","text")}${inp("email","Email","email")}${inp("pw","Password (8 or more characters)","password")}<p><button class="btn">Create admin account</button> <button type="button" class="btn g" id="sback">Back</button></p></form></div>`;
-return box+`<h1>Sign in</h1><p class="sub">HR Portal</p><form id="lg">${inp("email","Email","email")}${inp("pw","Password","password")}<p><button class="btn">Sign in</button></p></form><p class="mute"><a href="#" id="forgot">Forgot password?</a> &middot; <a href="#" id="first">First time setup</a></p></div>`}
+return box+`<p>${LOGO}</p><h1>Sign in</h1><p class="sub">${CO.name} HR Portal</p><form id="lg">${inp("email","Email","email")}${inp("pw","Password","password")}<p><button class="btn">Sign in</button></p></form><p class="mute"><a href="#" id="forgot">Forgot password?</a> &middot; <a href="#" id="first">First time setup</a></p></div>`}
 function errV(){return `<div class="panel" style="max-width:560px;margin:6vh auto 0"><h1>Could not open the database</h1><p class="sub">${esc(loadErr)}</p><p>This usually means the Firestore security rules have not been published yet. In Firebase, open Firestore Database, then Rules, paste the rules and click Publish. Then reload this page.</p><p><button class="btn" id="retry">Reload</button></p></div>`}
 function usersV(){const adm=meP&&meP.role==="Admin";
 return `<h1>Users</h1><p class="sub">${adm?"Add HR, Accounts and Admin logins here. Each person signs in with their own email and password.":"Only an admin can add or remove accounts."}</p>
@@ -240,6 +254,7 @@ $$("[data-open]").forEach(r=>r.onclick=()=>{cur=r.dataset.open;v="prof";tab="det
 $$("[data-view]").forEach(b=>b.onclick=async()=>{try{const bl=await fget(b.dataset.view);if(!bl)throw 0;window.open(URL.createObjectURL(bl),"_blank")}catch(x){toast("This file is not in this browser. It was attached on another computer.")}});
 $$("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;editing=editing&&canTab(tab);render()});
 const g=s=>$(s);lock();
+{const uf=g("#uf");if(uf){uf.setAttribute("autocomplete","off");const em=uf.elements.email,pw=uf.elements.pw;em.setAttribute("autocomplete","off");pw.setAttribute("autocomplete","new-password");setTimeout(()=>{if(!uf.contains(document.activeElement)){em.value="";pw.value=""}},400)}}
 if(g("#editb"))g("#editb").onclick=()=>{if(!canTab(tab))return;editing=!editing;render()};
 if(g("#q"))g("#q").oninput=ev=>{q=ev.target.value;const p=ev.target.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(p,p)};
 if(g("#ft"))g("#ft").onchange=ev=>{ft=ev.target.value;render()};
@@ -249,12 +264,14 @@ if(g("#back"))g("#back").onclick=()=>{v="list";editing=false;render()};
 if(g("#del"))g("#del").onclick=()=>{if(!fullEdit()||!editing)return;const e=emp(cur);if(confirm("Delete "+e.name+" and their files permanently?")){Object.keys(L).forEach(k=>(e[k]||[]).forEach(x=>x.fid&&fdel(x.fid)));S.emps=S.emps.filter(x=>x!==e);log("Deleted "+e.id+" "+e.name);save();editing=false;v="list";render();toast("Employee deleted")}};
 if(g("#df")){const ks=g("#df select[name=kind]");if(ks)ks.onchange=()=>{const e=emp(cur);new FormData(g("#df")).forEach((val,k)=>e[k]=val);render()};
 g("#df").onsubmit=ev=>{ev.preventDefault();if(!ed())return;const e=emp(cur),fd=new FormData(ev.target),ic=String(fd.get("ifsc")||"").trim().toUpperCase().replace(/\s/g,"");if(ic&&!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ic))return toast("IFSC code should be 11 characters, like SBIN0001234");fd.forEach((val,k)=>e[k]=val);if("ifsc" in e)e.ifsc=ic;log("Updated details of "+e.name);save();toast("Details saved");editing=false;render()};
-g("#slipb").onclick=()=>{const e=emp(cur),s=+e.salary||0,d=(+e.pf||0)+(+e.esi||0)+(+e.tds||0),m=new Date().toLocaleDateString("en-IN",{month:"long",year:"numeric"});
-$("#slip").innerHTML=`<h2>Payslip for ${m}</h2><p>${esc(e.name)} (${e.id}) · ${kindOf(e)} · ${typeOf(e)}<br>Bank: ${esc(e.bankName||"-")} · A/c: ${esc(e.bank||"-")} · IFSC: ${esc(e.ifsc||"-")} · PAN: ${esc(e.pan||"-")}</p><table><tr><td>Gross salary</td><td>${s}</td></tr><tr><td>PF</td><td>${+e.pf||0}</td></tr><tr><td>ESI</td><td>${+e.esi||0}</td></tr><tr><td>TDS</td><td>${+e.tds||0}</td></tr><tr><td><b>Net pay</b></td><td><b>${s-d}</b></td></tr></table>`;window.print()}}
+g("#slipm").onchange=ev=>{if(ev.target.value)slipM=ev.target.value};
+g("#slipb").onclick=()=>{const e=emp(cur),s=+e.salary||0,pf=+e.pf||0,esi=+e.esi||0,tds=+e.tds||0,d=pf+esi+tds,mv=(g("#slipm").value||slipM).split("-"),m=new Date(+mv[0],+mv[1]-1,1).toLocaleDateString("en-IN",{month:"long",year:"numeric"});
+$("#slip").innerHTML=`<div class="ph">${CO.logo?`<img src="${CO.logo}" alt="" onerror="this.remove()">`:""}<div><h1>${esc(CO.name)}</h1><p>${esc(CO.addr)}<br>${esc(CO.phone)} · ${esc(CO.email)}</p></div></div><h2>Payslip for ${m}</h2><p>${esc(e.name)} (${esc(e.id)}) · ${kindOf(e)} · ${typeOf(e)}<br>Bank: ${esc(e.bankName||"-")} · A/c: ${esc(e.bank||"-")} · IFSC: ${esc(e.ifsc||"-")} · PAN: ${esc(e.pan||"-")} · UAN: ${esc(e.uan||"-")}</p><table><tr><td>Gross salary</td><td>${inr(s)}</td></tr><tr><td>PF</td><td>${inr(pf)}</td></tr><tr><td>ESI</td><td>${inr(esi)}</td></tr><tr><td>TDS</td><td>${inr(tds)}</td></tr><tr><td><b>Net pay</b></td><td><b>${inr(s-d)}</b></td></tr></table><p style="font-size:11px;margin-top:14px">This is a computer-generated payslip.</p>`;window.print()}}
 $$(".add").forEach(f=>f.onsubmit=async ev=>{ev.preventDefault();if(!ed())return;const e=emp(cur),o={};new FormData(f).forEach((val,k)=>{if(!(val instanceof File))o[k]=val});
 const fi=f.querySelector("[name=file]"),file=fi&&fi.files[0];
 if(file){if(file.size>10485760)return toast("File is larger than 10 MB");try{o.fid="f"+Date.now();o.fname=file.name;o.name=o.name||file.name;if("note" in o&&!o.note)o.note=file.name;await fput(o.fid,file)}catch(x){return toast("Could not store the file in this browser")}}
-else if(f.dataset.k==="docs"&&o.name==="Other document"&&!o.no)return toast("Enter the document name in Details, or attach a file");
+else if(f.dataset.k==="docs"&&o.name==="Other document"&&!o.no&&!o.link)return toast("Enter the document name in Details, or paste a Drive link");
+if(o.link){o.link=o.link.trim();if(!/^https:\/\//i.test(o.link))return toast("Paste the full link, starting with https://")}
 e[f.dataset.k].push(o);log("Added "+f.dataset.k+" entry for "+e.name);save();render()});
 $$(".add input[type=file]").forEach(i=>{const b=i.closest("div").querySelector("[data-clr]");if(!b)return;i.onchange=()=>{b.hidden=!i.files.length};b.onclick=()=>{i.value="";b.hidden=true;toast("File removed")}});
 {const fi=$("#df [name=ifsc]"),fb=$("#df [name=bankName]");if(fi&&fb){const hint=document.createElement("div");hint.className="mute";hint.style.marginTop="4px";fi.closest("div").appendChild(hint);let seq=0;
