@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Meta Fintech HR Portal</title>
-<link rel="icon" href="logo.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%236f7cff'/%3E%3Ctext x='32' y='45' font-size='38' font-weight='700' text-anchor='middle' fill='white' font-family='Arial,sans-serif'%3EM%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Public+Sans:wght@400;500;600&display=swap">
 <style>
 :root{--bg:#f2f4f1;--sf:#fff;--ink:#1c2a29;--mute:#5d6b69;--line:#d9dfdb;--ac:#2f4bd0;--aci:#fff;--okc:#1f7a4d;--okb:#e2f3ea;--wc:#a86a00;--wb:#fbefd5;--bc:#b3362b;--bb:#f8e1de}
@@ -72,7 +72,8 @@ th,td{padding:10px 8px}
 .row{gap:8px}
 }
 @media (max-width:360px){.grid:has(>.stat){grid-template-columns:1fr}}
-.app.out{grid-template-columns:1fr}.app.out nav{display:none}#out{margin-top:auto}
+.app.out{grid-template-columns:1fr}.app.out nav{display:none}
+.app.out main{max-width:none;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px 14px}#out{margin-top:auto}
 input:disabled,select:disabled,textarea:disabled{opacity:1;color:var(--ink);-webkit-text-fill-color:var(--ink);background:transparent;border-color:transparent;cursor:default}
 select:disabled{appearance:none;-webkit-appearance:none}
 input[type=checkbox]:disabled{opacity:.7}
@@ -82,6 +83,13 @@ input[type=checkbox]:disabled{opacity:.7}
 .ph h1{margin:0;font-size:22px}
 .ph p{margin:2px 0 0;font-size:12px}
 #slip table{border-collapse:collapse;width:100%}#slip td{padding:6px 10px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:12px}.two .panel{margin:0}
+.hb{display:grid;grid-template-columns:110px 1fr 28px;align-items:center;gap:8px;font-size:13px;margin:8px 0}
+.hb u{display:block;height:14px;background:var(--line);border-radius:4px;overflow:hidden;text-decoration:none}.hb u i{display:block;height:100%;background:var(--ac);border-radius:4px}.hb b{text-align:right}
+.cols{display:flex;align-items:flex-end;gap:10px;height:170px;padding-top:6px}
+.cols div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%;font-size:12px;color:var(--mute)}
+.cols i{width:100%;max-width:34px;background:var(--ac);border-radius:4px 4px 0 0;display:block}.cols b{color:var(--ink);font-size:13px}
+.li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line);font-size:14px}.lst .li:first-child{border-top:0}
 </style>
 </head>
 <body>
@@ -177,6 +185,7 @@ const ONB=["Documents collected","KYC and background check done","ID card issued
 const EXIT=["Resignation accepted","Handover done","Assets returned","Final settlement paid","Experience letter issued"];
 let v="dash",cur=null,tab="details",q="",ft="",fk="";
 let editing=false;
+{const ic=document.querySelector("link[rel=icon]"),im=new Image();im.onload=()=>{ic.href="logo.png"};im.src="logo.png"}
 const CO={name:"Meta Fintech",addr:"57, Kengal Hanumanthaiah Rd, Sudhama Nagar, Bengaluru, Karnataka 560027",phone:"+91 77609 67403",email:"shylesh@metafintech.in",logo:"logo.png"};
 const LOGO=`<img class="logo" src="${CO.logo}" alt="" style="height:44px" onerror="this.remove()">`;
 const inr=n=>"₹"+(+n||0).toLocaleString("en-IN");
@@ -195,8 +204,20 @@ if(e.dob&&ann(e.dob)<=7)add("birthday coming up",ann(e.dob));
 if(e.joined&&dd(e.joined)<0&&ann(e.joined)<=7)add("work anniversary coming up",ann(e.joined))});return a.sort((x,y)=>x.d-y.d)}
 const when=d=>d<0?'<span class="tag b">Overdue</span>':d===0?'<span class="tag w">Today</span>':`<span class="tag ${d<=7?"w":""}">${d} days</span>`;
 function dash(){const act=S.emps.filter(e=>e.status!=="Resigned"),al=alerts();
-return `<h1>Dashboard</h1><p class="sub">Headcount and things that need attention in the next 30 days.</p>
-<div class="grid" style="margin-bottom:16px"><div class="panel stat" style="margin:0"><span class="mute">Active employees</span><b>${act.length}</b></div>${TYPES.map(t=>`<div class="panel stat" style="margin:0"><span class="mute">${t}</span><b>${act.filter(e=>typeOf(e)===t).length}</b></div>`).join("")}${KINDS.map(t=>`<div class="panel stat" style="margin:0"><span class="mute">${t}</span><b>${act.filter(e=>kindOf(e)===t).length}</b></div>`).join("")}<div class="panel stat" style="margin:0"><span class="mute">Resigned</span><b>${S.emps.length-act.length}</b></div></div>
+const onLeave=S.lr.filter(r=>r.st==="Approved"&&r.from&&r.to&&dd(r.from)<=0&&dd(r.to)>=0).length,pend=S.lr.filter(r=>r.st==="Pending").length,newj=act.filter(e=>e.joined&&dd(e.joined)<=0&&dd(e.joined)>=-30).length;
+const byT=TYPES.map(t=>[t,act.filter(e=>typeOf(e)===t).length]),mxT=Math.max(1,...byT.map(x=>x[1]));
+const now=new Date(),mons=[];for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1),k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");mons.push([d.toLocaleDateString("en-IN",{month:"short"}),S.emps.filter(e=>e.joined&&e.joined.slice(0,7)===k).length])}
+const mxM=Math.max(1,...mons.map(x=>x[1]));
+const lrs=S.lr.slice(0,5),stc={Pending:"w",Approved:"",Rejected:"b"};
+const soon=[];act.forEach(e=>{if(e.dob&&ann(e.dob)<=7)soon.push({d:ann(e.dob),t:"Birthday",n:e.name,id:e.id});if(e.joined&&dd(e.joined)<0&&ann(e.joined)<=7){const t=new Date();t.setDate(t.getDate()+ann(e.joined));const y=t.getFullYear()-(+e.joined.slice(0,4));if(y>=1)soon.push({d:ann(e.joined),t:y+(y===1?" year":" years")+" at work",n:e.name,id:e.id})}});soon.sort((a,b)=>a.d-b.d);
+const wd=d=>d===0?"Today":d===1?"Tomorrow":"In "+d+" days";
+const card=(l,n)=>`<div class="panel stat" style="margin:0"><span class="mute">${l}</span><b>${n}</b></div>`;
+return `<h1>Dashboard</h1><p class="sub">Headcount and things that need attention.</p>
+<div class="grid" style="margin-bottom:16px">${card("Active employees",act.length)}${card("On leave today",onLeave)}${card("Pending requests",pend)}${card("New joiners (30 days)",newj)}${card("Resigned",S.emps.length-act.length)}</div>
+<div class="two"><div class="panel"><h2>Headcount by type</h2>${byT.map(x=>`<div class="hb"><span>${esc(x[0])}</span><u><i style="width:${Math.round(x[1]/mxT*100)}%"></i></u><b>${x[1]}</b></div>`).join("")}<p class="mute" style="margin:10px 0 0;font-size:13px">${KINDS.map(k=>k+": "+act.filter(e=>kindOf(e)===k).length).join(" · ")}</p></div>
+<div class="panel"><h2>New joiners, last 6 months</h2><div class="cols">${mons.map(m=>`<div><b>${m[1]}</b><i style="height:${m[1]?Math.max(6,Math.round(m[1]/mxM*100)):0}%"></i><span>${m[0]}</span></div>`).join("")}</div></div></div>
+<div class="two"><div class="panel"><div class="row"><h2>Recent leave requests</h2><button class="btn sm g" data-go="lv">View all</button></div><div class="lst">${lrs.map(r=>`<div class="li"><span><b>${esc(r.n||r.id)}</b> · ${esc(r.type)}<br><span class="mute" style="font-size:13px">${fmt(r.from)} to ${fmt(r.to)}</span></span><span class="tag ${stc[r.st]||""}">${esc(r.st)}</span></div>`).join("")||'<p class="mute" style="margin:0">No leave requests yet.</p>'}</div></div>
+<div class="panel"><h2>Coming up this week</h2><div class="lst">${soon.map(x=>`<div class="li" data-open="${esc(x.id)}" style="cursor:pointer"><span><b>${esc(x.n)}</b><br><span class="mute" style="font-size:13px">${esc(x.t)}</span></span><span class="tag ${x.d<=1?"w":""}">${wd(x.d)}</span></div>`).join("")||'<p class="mute" style="margin:0">No birthdays or work anniversaries in the next 7 days.</p>'}</div></div></div>
 <div class="panel"><h2>Alerts</h2><ul class="al">${al.map(x=>`<li data-open="${x.id}"><span>${esc(x.t)}</span>${when(x.d)}</li>`).join("")||'<li class="mute">Nothing needs attention. Contract, probation and document dates will show here.</li>'}</ul></div>`}
 function list(){const l=S.emps.filter(e=>(e.name+e.id+(e.team||"")).toLowerCase().includes(q.toLowerCase())&&(!ft||typeOf(e)===ft)&&(!fk||kindOf(e)===fk));
 return `<div class="row"><h1>Employees</h1>${fullEdit()?'<button class="btn" id="add">Add employee</button>':""}</div><p class="sub">Click a row to open the full profile.</p>
@@ -235,7 +256,7 @@ return `<h1>Leave requests</h1><p class="sub">Employees fill in the leave form a
 ${fullEdit()?`<div class="panel"><h2>Add a request</h2><form id="lc"><label>Message from the employee<textarea name="code" rows="3" required></textarea></label><p><button class="btn sm">Add request</button></p></form></div>`:""}
 <div class="panel"><h2>Requests</h2><div class="sc"><table><thead><tr><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th><th></th></tr></thead><tbody>${S.lr.map(r=>`<tr><td><b>${esc(r.n||r.id)}</b></td><td>${r.type}</td><td>${fmt(r.from)}</td><td>${fmt(r.to)}</td><td>${ldays(r)}</td><td>${esc(r.why)}</td><td><span class="tag ${st[r.st]}">${r.st}</span></td><td>${r.st==="Pending"&&fullEdit()?`<button class="btn sm" data-ap="${r.rid}:Approved">Approve</button> <button class="btn sm d" data-ap="${r.rid}:Rejected">Reject</button>`:""}</td></tr>`).join("")||'<tr><td colspan="8" class="mute">No requests yet. Paste an employee’s message above.</td></tr>'}</tbody></table></div></div>
 ${fullEdit()?`<div class="panel"><h2>Leave link settings</h2><form id="cf"><div class="grid">${inp("addr","Web address of leave-request.html","url",S.cfg.addr)}${inp("hr","HR WhatsApp number with country code (optional)","tel",S.cfg.hr)}</div><p><button class="btn sm">Save settings</button></p></form></div>`:""}`}
-function loginV(){const box='<div class="panel" style="max-width:380px;margin:8vh auto 0">';
+function loginV(){const box='<div class="panel" style="width:100%;max-width:380px;margin:0 auto">';
 if(!authReady)return box+'<p class="mute">Loading...</p></div>';
 if(setup)return box+`<h1>Set up the first admin</h1><p class="sub">Use this only once, on a brand new portal. This account becomes the admin and can add HR accounts afterwards.</p><form id="su">${inp("name","Your name","text")}${inp("email","Email","email")}${inp("pw","Password (8 or more characters)","password")}<p><button class="btn">Create admin account</button> <button type="button" class="btn g" id="sback">Back</button></p></form></div>`;
 return box+`<p>${LOGO}</p><h1>Sign in</h1><p class="sub">${CO.name} HR Portal</p><form id="lg">${inp("email","Email","email")}${inp("pw","Password","password")}<p><button class="btn">Sign in</button></p></form><p class="mute"><a href="#" id="forgot">Forgot password?</a> &middot; <a href="#" id="first">First time setup</a></p></div>`}
@@ -254,6 +275,7 @@ $$("[data-open]").forEach(r=>r.onclick=()=>{cur=r.dataset.open;v="prof";tab="det
 $$("[data-view]").forEach(b=>b.onclick=async()=>{try{const bl=await fget(b.dataset.view);if(!bl)throw 0;window.open(URL.createObjectURL(bl),"_blank")}catch(x){toast("This file is not in this browser. It was attached on another computer.")}});
 $$("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;editing=editing&&canTab(tab);render()});
 const g=s=>$(s);lock();
+$$("[data-go]").forEach(b=>b.onclick=()=>{v=b.dataset.go;render()});
 {const uf=g("#uf");if(uf){uf.setAttribute("autocomplete","off");const em=uf.elements.email,pw=uf.elements.pw;em.setAttribute("autocomplete","off");pw.setAttribute("autocomplete","new-password");setTimeout(()=>{if(!uf.contains(document.activeElement)){em.value="";pw.value=""}},400)}}
 if(g("#editb"))g("#editb").onclick=()=>{if(!canTab(tab))return;editing=!editing;render()};
 if(g("#q"))g("#q").oninput=ev=>{q=ev.target.value;const p=ev.target.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(p,p)};
