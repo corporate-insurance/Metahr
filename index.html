@@ -94,13 +94,13 @@ input[type=checkbox]:disabled{opacity:.7}
 </head>
 <body>
 <div class="app"><nav aria-label="Main"><div class="brand"><img class="logo" src="logo.png" alt="" onerror="this.remove()">HR Portal</div>
-<button data-v="dash">Dashboard</button><button data-v="list">Employees</button><button data-v="rep">Reports and backup</button><button data-v="log">Activity log</button><button data-v="lv">Leave requests</button><button data-v="users">Users</button><button data-v="out" id="out">Sign out</button></nav>
+<button data-v="dash">Dashboard</button><button data-v="list">Employees</button><button data-v="rep">Reports and backup</button><button data-v="log">Activity log</button><button data-v="lv">Leave requests</button><button data-v="hol">Holidays</button><button data-v="users">Users</button><button data-v="out" id="out">Sign out</button></nav>
 <main id="main"></main></div>
 <div id="slip"></div><div id="toast" role="status"></div>
 <script type="module">
 const FB="https://www.gstatic.com/firebasejs/13.2.0/";
 let fbm;try{const m=await Promise.all([import(FB+"firebase-app.js"),import(FB+"firebase-auth.js"),import(FB+"firebase-firestore.js"),import(FB+"firebase-storage.js")]);fbm=Object.assign({},...m)}catch(x){document.body.innerHTML='<p style="padding:24px;font:16px sans-serif">Could not load the portal. Check your internet connection and refresh the page.</p>';throw x}
-const {initializeApp,deleteApp,getAuth,setPersistence,browserSessionPersistence,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,sendPasswordResetEmail,deleteUser,getFirestore,getStorage,ref,uploadBytes,getDownloadURL,deleteObject,collection,doc,setDoc,deleteDoc,addDoc,getDoc,onSnapshot,writeBatch,query,orderBy,limit}=fbm;
+const {initializeApp,deleteApp,getAuth,setPersistence,browserSessionPersistence,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,sendPasswordResetEmail,deleteUser,getFirestore,getDocs,where,getStorage,ref,uploadBytes,getDownloadURL,deleteObject,collection,doc,setDoc,deleteDoc,addDoc,getDoc,onSnapshot,writeBatch,query,orderBy,limit}=fbm;
 const firebaseConfig={apiKey:"AIzaSyASuZMqSs39jrwlDFpfmNUP2g8PkHaWX4s",authDomain:"meta-eeb73.firebaseapp.com",projectId:"meta-eeb73",storageBucket:"meta-eeb73.firebasestorage.app",messagingSenderId:"1066520166605",appId:"1:1066520166605:web:bda895fc57e6986715e984"};
 const fbApp=initializeApp(firebaseConfig),auth=getAuth(fbApp),db=getFirestore(fbApp),storage=getStorage(fbApp);
 const KEY="hr-portal-v1",TYPES=["Manager","Sales executive","Telesales","Operations"],KINDS=["On roll","Contract"];
@@ -108,14 +108,14 @@ const SALES=["Sales executive","Telesales"];
 const kindOf=e=>e.kind||(e.type==="Contract employee"?"Contract":"On roll"),typeOf=e=>e.type==="Contract employee"||e.type==="Other"?"Operations":(e.type||"");
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const today=()=>new Date().toISOString().slice(0,10);
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const addD=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
 const fmt=d=>d?new Date(d+"T00:00").toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"}):"-";
 const dd=d=>Math.round((new Date(d+"T00:00")-new Date(today()+"T00:00"))/864e5);
 function ann(d){const t=new Date(today()+"T00:00"),x=new Date(d+"T00:00");const n=new Date(t.getFullYear(),x.getMonth(),x.getDate());if(n<t)n.setFullYear(t.getFullYear()+1);return Math.round((n-t)/864e5)}
 const mk=o=>({status:"Active",kind:"On roll",onb:{},ex:{},leave:[],inc:[],docs:[],assets:[],train:[],notes:[],...o});
-let S={emps:[],lr:[],cfg:{},log:[],users:[]};
-const snap={emps:{},lr:{},cfg:""};
+let S={emps:[],lr:[],cfg:{},log:[],users:[],hol:[]};
+const snap={emps:{},lr:{},cfg:"",hol:""};
 const canon=o=>Array.isArray(o)?"["+o.map(canon).join(",")+"]":o&&typeof o==="object"?"{"+Object.keys(o).sort().filter(k=>o[k]!==undefined).map(k=>JSON.stringify(k)+":"+canon(o[k])).join(",")+"}":JSON.stringify(o===undefined?null:o);
 const dkey=x=>encodeURIComponent(String(x)).replace(/%/g,"_");
 const plain=o=>JSON.parse(JSON.stringify(o));
@@ -127,19 +127,20 @@ Object.keys(snap.emps).forEach(id=>{if(!S.emps.some(e=>e.id===id)){delete snap.e
 S.lr.forEach(r=>{const k=dkey(r.rid),j=canon(r);if(snap.lr[k]!==j){snap.lr[k]=j;setDoc(doc(db,"lr",k),plain(r)).catch(wfail)}});
 Object.keys(snap.lr).forEach(k=>{if(!S.lr.some(r=>dkey(r.rid)===k)){delete snap.lr[k];deleteDoc(doc(db,"lr",k)).catch(wfail)}});
 const cj=canon(S.cfg);if(snap.cfg!==cj){snap.cfg=cj;setDoc(doc(db,"config","app"),plain(S.cfg)).catch(wfail)}
+const hj=canon(S.hol);if(snap.hol!==hj){snap.hol=hj;setDoc(doc(db,"config","holidays"),{list:plain(S.hol)}).catch(wfail)}
 }catch(x){wfail()}}
 clearTimeout(btimer);btimer=setTimeout(()=>bwrite(),1500)}
 function log(m){if(!meP)return Promise.resolve();return addDoc(collection(db,"logs"),{ts:Date.now(),t:new Date().toLocaleString("en-IN"),m:(me?me+": ":"")+m}).catch(()=>{})}
-const backupJson=()=>JSON.stringify({emps:S.emps,lr:S.lr,cfg:S.cfg,log:S.log});
+const backupJson=()=>JSON.stringify({emps:S.emps,lr:S.lr,cfg:S.cfg,log:S.log,hol:S.hol});
 function oldData(){try{if(localStorage.getItem(KEY+"-imported"))return null;const o=JSON.parse(localStorage.getItem(KEY));return o&&o.emps&&o.emps.length?o:null}catch(x){return null}}
 function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");setTimeout(()=>t.classList.remove("on"),2200)}
 const emp=id=>S.emps.find(e=>e.id===id);
 let me=null,meP=null,busy=false,justIn=false,setup=false,authReady=false,loadErr="",loaded=false,ready=0,unsubs=[];
 const firsts={};
 const authMsg=x=>{const c=(x&&x.code)||"";return /invalid-credential|wrong-password|user-not-found|invalid-email/.test(c)?"Wrong email or password":c==="auth/too-many-requests"?"Too many attempts. Wait a few minutes and try again":c==="auth/network-request-failed"?"No internet connection":c==="auth/email-already-in-use"?"That email is already registered. Use another email, or delete the old login in Firebase (Authentication, Users).":c==="auth/weak-password"?"Password is too weak. Use 8 or more characters":c==="permission-denied"?"You do not have permission to do that":"Something went wrong. Please try again"};
-function first(k){if(!firsts[k]){firsts[k]=1;ready++}if(!loaded&&ready>=5){loaded=true;render()}}
+function first(k){if(!firsts[k]){firsts[k]=1;ready++}if(!loaded&&ready>=6){loaded=true;render()}}
 function refresh(){if(!me||!loaded)return;const a=document.activeElement;if(a&&a.closest&&a.closest("#main")&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;render()}
-function stopListeners(){unsubs.forEach(f=>{try{f()}catch(x){}});unsubs=[];S={emps:[],lr:[],cfg:{},log:[],users:[]};snap.emps={};snap.lr={};snap.cfg="";for(const k in firsts)delete firsts[k];ready=0;loaded=false;loadErr="";clearTimeout(btimer)}
+function stopListeners(){unsubs.forEach(f=>{try{f()}catch(x){}});unsubs=[];S={emps:[],lr:[],cfg:{},log:[],users:[],hol:[]};snap.emps={};snap.lr={};snap.cfg="";snap.hol="";for(const k in firsts)delete firsts[k];ready=0;loaded=false;loadErr="";clearTimeout(btimer)}
 function startListeners(){if(unsubs.length)return;
 const err=k=>e=>{loadErr="Could not read the shared database ("+((e&&e.code)||"error")+").";first(k);render()};
 unsubs=[
@@ -150,6 +151,7 @@ onSnapshot(collection(db,"lr"),ss=>{let ch=false;const ks=new Set();ss.forEach(d
 Object.keys(snap.lr).forEach(k=>{if(!ks.has(k)){delete snap.lr[k];S.lr=S.lr.filter(x=>dkey(x.rid)!==k);ch=true}});
 S.lr.sort((a,b)=>(b.at||0)-(a.at||0));first("lr");if(ch)refresh()},err("lr")),
 onSnapshot(doc(db,"config","app"),sn=>{const c=sn.exists()?sn.data():{},j=canon(c);let ch=false;if(snap.cfg!==j){snap.cfg=j;S.cfg=c;ch=true}first("cfg");if(ch)refresh()},err("cfg")),
+onSnapshot(doc(db,"config","holidays"),sn=>{const l=(sn.exists()&&Array.isArray(sn.data().list)?sn.data().list:[]).slice().sort(hsort),j=canon(l);let ch=false;if(snap.hol!==j){snap.hol=j;S.hol=l;ch=true}first("hol");if(ch)refresh()},err("hol")),
 onSnapshot(collection(db,"users"),ss=>{S.users=ss.docs.map(d=>({uid:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(String(b.name)));first("users");if(v==="users")refresh()},err("users")),
 onSnapshot(query(collection(db,"logs"),orderBy("ts","desc"),limit(200)),ss=>{S.log=ss.docs.map(d=>d.data());first("logs");if(v==="log")refresh()},err("logs"))]}
 const DB=new Promise(r=>{try{const q=indexedDB.open("hr-files",1);q.onupgradeneeded=()=>q.result.createObjectStore("f");q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(x){r(null)}});
@@ -183,7 +185,7 @@ train:{t:"Training",f:[["name","Training","text"],["date","Completed on","date"]
 notes:{t:"Warnings and notes",f:[["date","Date","date"],["note","Note","text"],["file","Attach file (PDF or image, up to 5 MB)","file"],["link","Or paste a Google Drive link instead","url"]]}};
 const ONB=["Documents collected","KYC and background check done","ID card issued","System access given","Training completed","Offer letter signed"];
 const EXIT=["Resignation accepted","Handover done","Assets returned","Final settlement paid","Experience letter issued"];
-let v="dash",cur=null,tab="details",q="",ft="",fk="";
+let v="dash",cur=null,tab="details",q="",ft="",fk="",nh="";
 let editing=false;
 {const ic=document.querySelector("link[rel=icon]"),im=new Image();im.onload=()=>{ic.href="logo.png"};im.src="logo.png"}
 const CO={name:"Meta Fintech",addr:"57, Kengal Hanumanthaiah Rd, Sudhama Nagar, Bengaluru, Karnataka 560027",phone:"+91 77609 67403",email:"shylesh@metafintech.in",logo:"logo.png"};
@@ -215,6 +217,7 @@ const wd=d=>d===0?"Today":d===1?"Tomorrow":"In "+d+" days";
 const card=(l,n)=>`<div class="panel stat" style="margin:0"><span class="mute">${l}</span><b>${n}</b></div>`;
 return `<h1>Dashboard</h1><p class="sub">Headcount and things that need attention.</p>
 <div class="grid" style="margin-bottom:16px">${card("Active employees",act.length)}${card("On leave today",onLeave)}${card("Pending requests",pend)}${card("New joiners (30 days)",newj)}${card("Resigned",S.emps.length-act.length)}</div>
+${holDash()}
 <div class="two"><div class="panel"><h2>Headcount by type</h2>${byT.map(x=>`<div class="hb"><span>${esc(x[0])}</span><u><i style="width:${Math.round(x[1]/mxT*100)}%"></i></u><b>${x[1]}</b></div>`).join("")}<p class="mute" style="margin:10px 0 0;font-size:13px">${KINDS.map(k=>k+": "+act.filter(e=>kindOf(e)===k).length).join(" · ")}</p></div>
 <div class="panel"><h2>New joiners, last 6 months</h2><div class="cols">${mons.map(m=>`<div><b>${m[1]}</b><i style="height:${m[1]?Math.max(6,Math.round(m[1]/mxM*100)):0}%"></i><span>${m[0]}</span></div>`).join("")}</div></div></div>
 <div class="two"><div class="panel"><div class="row"><h2>Recent leave requests</h2><button class="btn sm g" data-go="lv">View all</button></div><div class="lst">${lrs.map(r=>`<div class="li"><span><b>${esc(r.n||r.id)}</b> · ${esc(r.type)}<br><span class="mute" style="font-size:13px">${fmt(r.from)} to ${fmt(r.to)}</span></span><span class="tag ${stc[r.st]||""}">${esc(r.st)}</span></div>`).join("")||'<p class="mute" style="margin:0">No leave requests yet.</p>'}</div></div>
@@ -267,11 +270,42 @@ function usersV(){const adm=meP&&meP.role==="Admin";
 return `<h1>Users</h1><p class="sub">${adm?"Add HR, Accounts and Admin logins here. Each person signs in with their own email and password.":"Only an admin can add or remove accounts."}</p>
 ${adm?`<div class="panel"><h2>Add a user</h2><form id="uf"><div class="grid">${inp("name","Name","text")}${inp("email","Email","email")}${inp("role","Role","select:HR,Accounts,Admin")}${inp("pw","Temporary password (8 or more characters)","password")}</div><p><button class="btn sm">Add user</button></p></form></div>`:""}
 <div class="panel"><div class="sc"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr></thead><tbody>${S.users.map(u=>`<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${esc(u.role)}</td><td>${adm?`<button class="btn sm g" data-pw="${esc(u.email)}">Send password reset</button> ${u.uid!==meP.uid?`<button class="btn sm d" data-ru="${esc(u.uid)}">Remove</button>`:'<span class="mute">You</span>'}`:(u.uid===meP.uid?'<span class="mute">You</span>':"")}</td></tr>`).join("")}</tbody></table></div></div>`}
+const HLEAD=3;
+const hwd=d=>new Date(d+"T00:00").toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+const hshort=d=>new Date(d+"T00:00").toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
+const hsort=(a,b)=>String(a.date).localeCompare(String(b.date))||String(a.name).localeCompare(String(b.name));
+const hdue=()=>S.hol.filter(h=>!h.sent&&dd(h.date)>=0&&dd(h.date)<=HLEAD);
+const hin=d=>d<0?"Passed":d===0?"Today":d===1?"Tomorrow":"In "+d+" days";
+function waNum(p){let d=String(p||"").replace(/\D/g,"").replace(/^0+/,"");if(d.length===10)d="91"+d;return d.length>=11&&d.length<=15?d:""}
+const holTpl=h=>`Hello {name},\n\nWishing you and your family a very happy ${h.name}!\n\nPlease note that the office will be closed on ${hwd(h.date)}. We will see you on the next working day.\n\nEnjoy the holiday!\n\nWarm regards,\nHR, ${CO.name}`;
+const holRecips=()=>S.emps.filter(e=>e.status!=="Resigned");
+const hasMail=e=>/\S+@\S+/.test(e.email||"");
+function holDash(){if(!fullEdit())return"";const d=hdue();if(!d.length)return"";return `<div class="panel"><h2>Holiday reminders</h2><div class="lst">${d.map(h=>`<div class="li"><span><b>${esc(h.name)}</b><br><span class="mute" style="font-size:13px">${hshort(h.date)}</span></span><span><span class="tag w">${hin(dd(h.date))}</span> <button class="btn sm" data-nh="${esc(h.id)}">Notify employees</button></span></div>`).join("")}</div></div>`}
+function notifyPanel(h){const rc=holRecips(),wa=rc.filter(e=>waNum(e.phone)),em=rc.filter(hasMail),ch=Math.ceil(em.length/15),nowa=rc.length-wa.length,noem=rc.length-em.length;
+return `<div class="panel"><h2>Notify employees: ${esc(h.name)}, ${hshort(h.date)}</h2>
+<p class="mute">Edit the message if you like. {name} becomes each person's first name on WhatsApp, and "team" in the email.</p>
+<textarea id="nm" rows="6" style="width:100%">${esc(holTpl(h))}</textarea>
+<h3>Email (${em.length} people)${noem?` <span class="mute">· ${noem} without an email saved</span>`:""}</h3>
+<p><button class="btn" id="nauto">Send email to everyone now</button> <button class="btn sm g" id="ntest">Send me a test email</button> <button class="btn sm g" id="ndel">Check delivery</button></p>
+<p class="mute" id="ndelout" style="margin-top:0">The email goes out automatically within a minute of clicking.</p>
+<p class="mute" style="margin-bottom:6px">Or send it yourself:</p>
+<p>${Array.from({length:ch},(_,i)=>`<button class="btn sm" data-gm="${i}">Open in Gmail${ch>1?" ("+(i+1)+" of "+ch+")":""}</button> <button class="btn sm g" data-ml="${i}">Email app${ch>1?" ("+(i+1)+" of "+ch+")":""}</button> `).join("")}<button class="btn sm g" id="ncope">Copy email list</button></p>
+<h3>WhatsApp (${wa.length} people)${nowa?` <span class="mute">· ${nowa} without a valid phone number</span>`:""}</h3>
+<p class="mute">Tap a name to open WhatsApp with the message ready, then press send.</p>
+<div class="lst">${wa.map(e=>`<div class="li"><span>${esc(e.name)} <span class="mute">${esc(e.phone)}</span></span><button class="btn sm" data-wa="${esc(e.id)}">WhatsApp</button></div>`).join("")}</div>
+<p style="margin-top:14px"><button class="btn sm g" id="ncopy">Copy message</button> <button class="btn sm" id="ndone">Mark as notified</button> <button class="btn sm g" id="nclose">Close</button></p></div>`}
+function holV(){const ed=fullEdit(),all=S.hol,due=hdue(),h=nh&&all.find(x=>x.id===nh);
+return `<h1>Holiday calendar</h1><p class="sub">Add the year's holidays once. From ${HLEAD} days before each holiday, the dashboard reminds HR to notify employees by WhatsApp and email.</p>
+${ed&&due.length&&!h?`<div class="panel"><h2>Notify employees now</h2><div class="lst">${due.map(x=>`<div class="li"><span><b>${esc(x.name)}</b><br><span class="mute" style="font-size:13px">${hshort(x.date)}</span></span><span><span class="tag w">${hin(dd(x.date))}</span> <button class="btn sm" data-nh="${esc(x.id)}">Notify employees</button></span></div>`).join("")}</div></div>`:""}
+${h&&ed?notifyPanel(h):""}
+${ed?`<div class="panel"><h2>Add a holiday</h2><form id="hf"><div class="grid">${inp("date","Date","date")}${inp("name","Holiday name","text")}</div><p><button class="btn sm">Add holiday</button></p></form></div>
+<div class="panel"><h2>Add many at once</h2><p class="mute">One holiday per line, with the date first. For example: 2026-11-14, Diwali or 14-11-2026 Diwali</p><textarea id="hmany" rows="6" style="width:100%" placeholder="2026-12-25, Christmas"></textarea><p><button class="btn sm" id="hbulk">Add all</button></p></div>`:""}
+<div class="panel"><div class="sc"><table><thead><tr><th>Date</th><th>Holiday</th><th>When</th><th>Notified</th><th></th></tr></thead><tbody>${all.map(x=>{const d=dd(x.date);return `<tr${d<0?' class="mute"':""}><td>${hshort(x.date)}</td><td>${esc(x.name)}</td><td>${hin(d)}</td><td>${x.sent?fmt(x.sent):"-"}</td><td>${ed?`${d>=0?`<button class="btn sm g" data-nh="${esc(x.id)}">Notify</button> `:""}<button class="btn sm d" data-hrm="${esc(x.id)}">Remove</button>`:""}</td></tr>`}).join("")||`<tr><td colspan="5" class="mute">No holidays added yet.</td></tr>`}</tbody></table></div></div>`}
 function render(){$(".app").classList.toggle("out",!me);if(!me){$("#main").innerHTML=loginV();bind();return}$("#out").textContent="Sign out ("+me+")";
 if(loadErr){$("#main").innerHTML=errV();bind();return}
 if(!loaded){$("#main").innerHTML='<p class="mute">Loading data...</p>';return}
 $$("nav button").forEach(b=>b.setAttribute("aria-current",b.dataset.v===(v==="prof"?"list":v)));
-$("#main").innerHTML=({dash,list,prof,rep,log:logv,users:usersV,lv:lvV})[v]();bind()}
+$("#main").innerHTML=({dash,list,prof,rep,log:logv,users:usersV,lv:lvV,hol:holV})[v]();bind()}
 function bind(){
 $$("[data-open]").forEach(r=>r.onclick=()=>{cur=r.dataset.open;v="prof";tab="details";editing=false;render()});
 $$("[data-sv]").forEach(b=>b.onclick=async()=>{const w=window.open("about:blank","_blank");try{b.disabled=true;const u=await getDownloadURL(ref(storage,b.dataset.sv));if(w)w.location.href=u;else location.href=u}catch(x){if(w)w.close();toast("Could not open the file. It may have been removed, or you do not have permission.")}finally{b.disabled=false}});
@@ -316,7 +350,7 @@ if(g("#bpick"))g("#bpick").onclick=async()=>{try{const d=await showDirectoryPick
 if(g("#bre"))g("#bre").onclick=async()=>{try{bperm=await bdir.requestPermission({mode:"readwrite"});if(bperm==="granted")await bwrite()}catch(x){}render()};
 if(g("#bnow"))g("#bnow").onclick=async()=>{await bwrite();toast("Backup done")};
 if(g("#bstop"))g("#bstop").onclick=()=>{if(confirm("Stop auto-backup? Files already in the folder stay there.")){bdir=null;fdel(BK);log("Turned off folder backup");save();render()}};
-if(g("#rs"))g("#rs").onchange=ev=>{if(!fullEdit())return;const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.emps)throw 0;if(!confirm("Restoring replaces ALL employee data for everyone with the contents of this file. Continue?"))return;S.emps=d.emps.map(mk);S.lr=d.lr||[];if(d.cfg)S.cfg=d.cfg;log("Restored backup");save();toast("Backup restored");render()}catch(x){toast("That file is not a valid backup")}};r.readAsText(f)}
+if(g("#rs"))g("#rs").onchange=ev=>{if(!fullEdit())return;const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.emps)throw 0;if(!confirm("Restoring replaces ALL employee data for everyone with the contents of this file. Continue?"))return;S.emps=d.emps.map(mk);S.lr=d.lr||[];if(d.cfg)S.cfg=d.cfg;if(d.hol)S.hol=d.hol;log("Restored backup");save();toast("Backup restored");render()}catch(x){toast("That file is not a valid backup")}};r.readAsText(f)}
 if(g("#imp"))g("#imp").onclick=()=>{if(!fullEdit())return;const o=oldData();if(!o)return;const have=new Set(S.emps.map(e=>e.id));let n=0,k=0;o.emps.forEach(e=>{if(have.has(e.id))k++;else{S.emps.push(mk(e));n++}});const hr=new Set(S.lr.map(r=>r.rid));(o.lr||[]).forEach(r=>{if(!hr.has(r.rid))S.lr.push(r)});if(o.cfg&&!S.cfg.addr&&!S.cfg.hr)S.cfg=o.cfg;log("Imported "+n+" employees from this browser");save();try{localStorage.setItem(KEY+"-imported","1")}catch(x){}toast(n+" imported"+(k?", "+k+" skipped (ID already exists)":""));render()};
 if(g("#cf"))g("#cf").onsubmit=ev=>{ev.preventDefault();if(!fullEdit())return;const d=Object.fromEntries(new FormData(ev.target));S.cfg.addr=d.addr.trim();S.cfg.hr=d.hr.replace(/\D/g,"");log("Updated leave link settings");save();toast("Settings saved");render()};
 if(g("#lc"))g("#lc").onsubmit=ev=>{ev.preventDefault();if(!fullEdit())return;let r;try{const m=new FormData(ev.target).get("code").match(/LR1:([A-Za-z0-9+\/=]+)/);r=JSON.parse(decodeURIComponent(escape(atob(m[1]))));if(!r.rid||!r.id||!r.from||!r.to)throw 0}catch(x){return toast("That message is not valid. Ask the employee to send it again.")}
@@ -342,9 +376,28 @@ if(g("#uf"))g("#uf").onsubmit=async ev=>{ev.preventDefault();const d=Object.from
 if(!nm||!em||d.pw.length<8)return toast("Enter a name, an email and a password of 8 or more characters");
 let a2=null;try{a2=initializeApp(firebaseConfig,"second"+Date.now());const au2=getAuth(a2);const c=await createUserWithEmailAndPassword(au2,em,d.pw);await setDoc(doc(db,"users",c.user.uid),{name:nm,email:em,role:d.role});await signOut(au2);log("Added user "+em+" ("+d.role+")");toast("User added. Share the email and temporary password with them.");render()}catch(x){toast(authMsg(x))}finally{if(a2)deleteApp(a2).catch(()=>{})}};
 $$("[data-pw]").forEach(b=>b.onclick=async()=>{try{await sendPasswordResetEmail(auth,b.dataset.pw);log("Sent password reset to "+b.dataset.pw);toast("Reset link sent to "+b.dataset.pw)}catch(x){toast(authMsg(x))}});
+$$("[data-nh]").forEach(b=>b.onclick=()=>{if(!fullEdit())return;nh=b.dataset.nh;v="hol";render();window.scrollTo(0,0)});
+if(g("#hf"))g("#hf").onsubmit=ev=>{ev.preventDefault();if(!fullEdit())return;const d=Object.fromEntries(new FormData(ev.target)),nm=(d.name||"").trim();if(!d.date||!nm)return toast("Enter the date and the holiday name");if(S.hol.some(x=>x.date===d.date&&x.name.toLowerCase()===nm.toLowerCase()))return toast("That holiday is already in the list");S.hol.push({id:"h"+Date.now(),date:d.date,name:nm});S.hol.sort(hsort);log("Added holiday "+nm+" on "+d.date);save();toast("Holiday added");render()};
+if(g("#hbulk"))g("#hbulk").onclick=()=>{if(!fullEdit())return;let n=0,k=0;(g("#hmany").value||"").split(/\r?\n/).forEach((ln,i)=>{ln=ln.trim();if(!ln)return;let m=ln.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})[\s,;:\-–]*(.*)$/),y,mo,da,nm;if(m){y=m[1];mo=m[2];da=m[3];nm=m[4]}else{m=ln.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})[\s,;:\-–]*(.*)$/);if(m){da=m[1];mo=m[2];y=m[3];nm=m[4]}}
+if(!m||!nm.trim()){k++;return}const dt=y+"-"+String(mo).padStart(2,"0")+"-"+String(da).padStart(2,"0");if((()=>{const t=new Date(+y,+mo-1,+da);return t.getFullYear()!==+y||t.getMonth()!==+mo-1||t.getDate()!==+da})()||S.hol.some(x=>x.date===dt&&x.name.toLowerCase()===nm.trim().toLowerCase())){k++;return}S.hol.push({id:"h"+Date.now()+"-"+i,date:dt,name:nm.trim()});n++});
+S.hol.sort(hsort);if(n){log("Added "+n+" holidays");save()}toast(n+" added"+(k?", "+k+" skipped (invalid or duplicate)":""));render()};
+$$("[data-hrm]").forEach(b=>b.onclick=()=>{if(!fullEdit())return;const x=S.hol.find(h=>h.id===b.dataset.hrm);if(!x)return;if(confirm("Remove "+x.name+" ("+hshort(x.date)+")?")){S.hol=S.hol.filter(h=>h!==x);if(nh===x.id)nh="";log("Removed holiday "+x.name);save();render()}});
+{const nmsg=()=>g("#nm")?g("#nm").value:"",hcur=()=>S.hol.find(x=>x.id===nh),mails=()=>holRecips().filter(hasMail).map(e=>e.email.trim()),subj=()=>{const h=hcur();return h?"Holiday on "+hshort(h.date)+": "+h.name:"Holiday"},enc=t=>encodeURIComponent(t).replace(/%2C/g,","),team=()=>nmsg().replace(/\{name\}/g,"team"),chunk=i=>mails().slice(i*15,i*15+15).join(","),copyT=(t,m)=>{navigator.clipboard.writeText(t).then(()=>toast(m),()=>toast("Could not copy. Select the text and copy it."))};
+const mailDoc=(e,h)=>{const fn=String(e.name||"").trim().split(/\s+/)[0]||"there",text=nmsg().replace(/\{name\}/g,fn);return {to:e.email.trim(),holId:h.id,empId:e.id,sentBy:meP.uid,message:{subject:subj(),text,html:'<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#222">'+esc(text).replace(/\n/g,"<br>")+"</div>"}}};
+if(g("#nauto"))g("#nauto").onclick=async()=>{const h=hcur();if(!h||!fullEdit())return;const rc=holRecips().filter(hasMail);if(!rc.length)return toast("No employee has an email saved");if(!confirm((h.sent?"This holiday was already notified on "+fmt(h.sent)+". Send again?\n\n":"")+"Send this email to "+rc.length+" employees now?"))return;const b=g("#nauto");b.disabled=true;b.textContent="Sending...";let ok=0,bad=0;for(const e of rc){try{await addDoc(collection(db,"mail"),mailDoc(e,h));ok++}catch(x){bad++}}
+if(ok){h.sent=today();log("Sent holiday email for "+h.name+" to "+ok+" employees");save()}toast(bad?ok+" queued, "+bad+" failed. Check that the Firestore rules allow sending.":"Email queued for "+ok+" employees. It is sent within a minute.");render()};
+if(g("#ntest"))g("#ntest").onclick=async()=>{const h=hcur();if(!h||!fullEdit())return;const em=(meP.email||"").trim();if(!em)return toast("Your account has no email");try{await addDoc(collection(db,"mail"),mailDoc({name:me,email:em,id:"test"},h));toast("Test email queued for "+em+". It arrives within a minute.")}catch(x){toast("Could not queue the email. Check that the Firestore rules allow sending.")}};
+if(g("#ndel"))g("#ndel").onclick=async()=>{const h=hcur();if(!h)return;const o=g("#ndelout");o.textContent="Checking...";try{const ss=await getDocs(query(collection(db,"mail"),where("holId","==",h.id)));let ok=0,er=0,pe=0,msg="";ss.forEach(d=>{const dl=d.data().delivery||{};if(dl.state==="SUCCESS")ok++;else if(dl.state==="ERROR"){er++;if(!msg)msg=String(dl.error||"")}else pe++});o.textContent=ss.size?"Delivered: "+ok+". Waiting: "+pe+". Failed: "+er+"."+(msg?" First error: "+msg.slice(0,160):"")+(pe&&!ok&&!er?" If everything stays waiting, the Trigger Email extension is not set up yet.":""):"No emails have been sent for this holiday yet."}catch(x){o.textContent="Could not check. "+(x&&x.code==="permission-denied"?"Publish the updated Firestore rules first.":"Try again.")}};
+$$("[data-wa]").forEach(b=>b.onclick=()=>{const e=emp(b.dataset.wa);if(!e)return;const fn=String(e.name||"").trim().split(/\s+/)[0]||"there";window.open("https://wa.me/"+waNum(e.phone)+"?text="+encodeURIComponent(nmsg().replace(/\{name\}/g,fn)),"_blank","noopener")});
+$$("[data-gm]").forEach(b=>b.onclick=()=>window.open("https://mail.google.com/mail/?view=cm&fs=1&bcc="+enc(chunk(+b.dataset.gm))+"&su="+encodeURIComponent(subj())+"&body="+encodeURIComponent(team()),"_blank","noopener"));
+$$("[data-ml]").forEach(b=>b.onclick=()=>{location.href="mailto:?bcc="+enc(chunk(+b.dataset.ml))+"&subject="+encodeURIComponent(subj())+"&body="+encodeURIComponent(team())});
+if(g("#ncope"))g("#ncope").onclick=()=>copyT(mails().join(", "),"Email list copied");
+if(g("#ncopy"))g("#ncopy").onclick=()=>copyT(team(),"Message copied");
+if(g("#nclose"))g("#nclose").onclick=()=>{nh="";render()};
+if(g("#ndone"))g("#ndone").onclick=()=>{const h=hcur();if(!h||!fullEdit())return;h.sent=today();log("Notified employees about holiday "+h.name);save();nh="";toast("Marked as notified");render()}}
 $$("[data-ru]").forEach(b=>b.onclick=async()=>{const u=S.users.find(x=>x.uid===b.dataset.ru);if(!u)return;if(confirm("Remove "+u.name+"? They will no longer be able to open the portal.")){try{await deleteDoc(doc(db,"users",u.uid));log("Removed user "+u.email);toast("User removed")}catch(x){toast(authMsg(x))}}});
 }
-$$("nav button").forEach(b=>b.onclick=async()=>{v=b.dataset.v;if(v==="out"){v="dash";try{await log("Signed out")}catch(x){}try{await signOut(auth)}catch(x){}return}render()});
+$$("nav button").forEach(b=>b.onclick=async()=>{v=b.dataset.v;nh="";if(v==="out"){v="dash";try{await log("Signed out")}catch(x){}try{await signOut(auth)}catch(x){}return}render()});
 try{await setPersistence(auth,browserSessionPersistence)}catch(x){}
 onAuthStateChanged(auth,async u=>{if(busy)return;
 if(!u){stopListeners();meP=null;me=null;setup=false;authReady=true;render();return}
@@ -353,7 +406,7 @@ if(!sn.exists()||!ROLES.includes(sn.data().role)){justIn=false;try{await signOut
 meP={uid:u.uid,...sn.data()};me=meP.name||u.email;authReady=true;
 if(justIn){justIn=false;log("Signed in")}
 startListeners();render()}
-catch(x){justIn=false;try{await signOut(auth)}catch(_){}authReady=true;toast("Could not load your account. Check that the Firestore rules are published.")}});
+catch(x){justIn=false;console.error(x);try{await signOut(auth)}catch(_){}authReady=true;const c=(x&&x.code)||(x&&x.name)||"error";toast(c==="permission-denied"?"Could not load your account: the Firestore rules do not allow it. In Firebase open Firestore, then Rules, and publish the portal rules.":c==="unavailable"?"Could not reach the database. Check your internet connection or any ad blocker.":"Could not load your account ("+c+"). Please send this message to your developer.")}});
 render();
 </script>
 </body>
