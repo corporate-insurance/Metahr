@@ -95,7 +95,7 @@ input[type=checkbox]:disabled{opacity:.7}
 </head>
 <body>
 <div class="app"><nav aria-label="Main"><div class="brand"><img class="logo" src="logo.png" alt="" onerror="this.remove()">HR Portal</div>
-<button data-v="dash">Dashboard</button><button data-v="list">Employees</button><button data-v="rep">Reports and backup</button><button data-v="log">Activity log</button><button data-v="lv">Leave requests</button><button data-v="hol">Holidays</button><button data-v="users">Users</button><button data-v="out" id="out">Sign out</button></nav>
+<button data-v="dash">Dashboard</button><button data-v="list">Employees</button><button data-v="rep">Reports and backup</button><button data-v="log">Activity log</button><button data-v="lv">Leave requests</button><button data-v="hol">Holidays</button><button data-v="tg">Targets</button><button data-v="lb">Leaderboard</button><button data-v="users">Users</button><button data-v="out" id="out">Sign out</button></nav>
 <main id="main"></main></div>
 <div id="slip"></div><div id="toast" role="status"></div>
 <script type="module">
@@ -187,7 +187,7 @@ train:{t:"Training",f:[["name","Training","text"],["date","Completed on","date"]
 notes:{t:"Warnings and notes",f:[["date","Date","date"],["note","Note","text"],["file","Attach file (PDF or image, up to 5 MB)","file"],["link","Or paste a Google Drive link instead","url"]]}};
 const ONB=["Documents collected","KYC and background check done","ID card issued","System access given","Training completed","Offer letter signed"];
 const EXIT=["Resignation accepted","Handover done","Assets returned","Final settlement paid","Experience letter issued"];
-let v="dash",cur=null,tab="details",q="",ft="",fk="",nh="";
+let v="dash",cur=null,tab="details",q="",ft="",fk="",nh="",tgm="",lbn=10,tgt="m",tgq="",tgy="";
 let editing=false;
 {const ic=document.querySelector("link[rel=icon]"),im=new Image();im.onload=()=>{ic.href="logo.png"};im.src="logo.png"}
 const CO={name:"Meta Fintech",addr:"57, Kengal Hanumanthaiah Rd, Sudhama Nagar, Bengaluru, Karnataka 560027",phone:"+91 77609 67403",email:"shylesh@metafintech.in",logo:"logo.png"};
@@ -320,11 +320,64 @@ ${h&&ed?notifyPanel(h):""}
 ${ed?`<div class="panel"><h2>Add a holiday</h2><form id="hf"><div class="grid">${inp("date","Date","date")}${inp("name","Holiday name","text")}</div><p><button class="btn sm">Add holiday</button></p></form></div>
 <div class="panel"><h2>Add many at once</h2><p class="mute">One holiday per line, with the date first. For example: 2026-11-14, Diwali or 14-11-2026 Diwali</p><textarea id="hmany" rows="6" style="width:100%" placeholder="2026-12-25, Christmas"></textarea><p><button class="btn sm" id="hbulk">Add all</button></p></div>`:""}
 <div class="panel"><div class="sc"><table><thead><tr><th>Date</th><th>Holiday</th><th>When</th><th>Notified</th><th></th></tr></thead><tbody>${all.map(x=>{const d=dd(x.date);return `<tr${d<0?' class="mute"':""}><td>${hshort(x.date)}</td><td>${esc(x.name)}</td><td>${hin(d)}</td><td>${x.sent?fmt(x.sent):"-"}</td><td>${ed?`${d>=0?`<button class="btn sm g" data-nh="${esc(x.id)}">Notify</button> `:""}<button class="btn sm d" data-hrm="${esc(x.id)}">Remove</button>`:""}</td></tr>`}).join("")||`<tr><td colspan="5" class="mute">No holidays added yet.</td></tr>`}</tbody></table></div></div>`}
+const tgNum=x=>{const n=parseFloat(String(x??"").replace(/,/g,""));return isFinite(n)?n:0};
+const tgUnit=()=>String(S.cfg.tunit||"").trim();
+const tgFmt=n=>{const u=tgUnit(),t=(Math.round(n*100)/100).toLocaleString("en-IN");return u==="\u20B9"||u.toLowerCase()==="rs"?"\u20B9"+t:u?t+" "+u:t};
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const fyStart=()=>S.cfg.fy==="1"?1:4;
+const mkey=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+function qOf(m){const[y,mo]=m.split("-").map(Number),st=fyStart();return{fy:mo>=st?y:y-1,q:Math.floor(((mo-st+12)%12)/3)+1}}
+const fyLabel=fy=>fyStart()===1?String(fy):"FY "+fy+"-"+String(fy+1).slice(2);
+function qMonths(fy,qq){const st=fyStart();return[0,1,2].map(k=>mkey(new Date(fy,st-1+3*(qq-1)+k,1)))}
+function yMonths(fy){const st=fyStart();return Array.from({length:12},(_,k)=>mkey(new Date(fy,st-1+k,1)))}
+const mShort=m=>MON[+m.slice(5)-1]+" "+m.slice(2,4);
+function qLabel(fy,qq){const ms=qMonths(fy,qq);return "Q"+qq+" "+fyLabel(fy)+" ("+MON[+ms[0].slice(5)-1]+" to "+MON[+ms[2].slice(5)-1]+")"}
+const tgMonth=()=>tgm||today().slice(0,7);
+const tgLabel=m=>new Date(m+"-01T00:00").toLocaleDateString("en-IN",{month:"long",year:"numeric"});
+function tgPer(){const c=qOf(today().slice(0,7));
+if(tgt==="q"){const k=tgq||(c.fy+"-Q"+c.q),[a,b]=k.split("-Q"),fy=+a,qq=+b;return{type:"q",key:k,months:qMonths(fy,qq),label:qLabel(fy,qq)}}
+if(tgt==="y"){const k=tgy||String(c.fy),fy=+k;return{type:"y",key:k,months:yMonths(fy),label:fyLabel(fy)}}
+const m=tgMonth();return{type:"m",key:m,months:[m],label:tgLabel(m)}}
+function perOpts(){const c=qOf(today().slice(0,7)),o=[];
+if(tgt==="q"){let fy=c.fy,qq=c.q;for(let i=0;i<8;i++){o.push([fy+"-Q"+qq,qLabel(fy,qq)]);qq--;if(qq<1){qq=4;fy--}}}else{for(let i=0;i<5;i++)o.push([String(c.fy-i),fyLabel(c.fy-i)])}
+const cur=tgt==="q"?tgq:tgy;if(cur&&!o.some(x=>x[0]===cur)){if(tgt==="q"){const[a,b]=cur.split("-Q");o.push([cur,qLabel(+a,+b)])}else o.push([cur,fyLabel(+cur)])}return o}
+const tcl=p=>p>=100?"":p>=70?"m":"l";
+const tgEnt=(e,m)=>(e.inc||[]).find(x=>x.month===m);
+const tgRows=ms=>holRecips().map(e=>{let t=0,a=0,i=0;ms.forEach(m=>{const x=tgEnt(e,m);if(x){t+=tgNum(x.target);a+=tgNum(x.ach);i+=tgNum(x.amt)}});return{e,x:ms.length===1?tgEnt(e,ms[0]):null,t,a,i,p:t>0?Math.round(a/t*100):null}});
+function tgSum(rows){const w=rows.filter(r=>r.t>0),T=w.reduce((s,r)=>s+r.t,0),A=w.reduce((s,r)=>s+r.a,0);return{T,A,n:w.length,p:T>0?Math.round(A/T*100):null}}
+function tgTeams(rows){const grp={};rows.filter(r=>r.t>0).forEach(r=>{const k=r.e.team||"No team";(grp[k]=grp[k]||[]).push(r)});return Object.keys(grp).map(n=>({...tgSum(grp[n]),n})).sort((a,b)=>b.p-a.p)}
+function tgMonths(m,n){const[y,mo]=m.split("-").map(Number),out=[];for(let i=n-1;i>=0;i--)out.push(mkey(new Date(y,mo-1-i,1)));return out}
+const tgBar=(l,p)=>`<div class="pg"><span>${esc(l)}</span><u><i class="${tcl(p)}" style="width:${Math.min(p,100)}%"></i></u><b>${p}%</b></div>`;
+const tgNb=(l,s)=>s.p==null?`<div class="pg"><span>${esc(l)}</span><span class="mute">No data</span><b></b></div>`:tgBar(l,s.p);
+const tgRanked=rows=>rows.filter(r=>r.t>0).sort((a,b)=>b.p-a.p||b.a-a.a);
+function perBar(extra){const per=tgPer();return `<div class="panel"><div class="row"><span style="display:flex;gap:6px;flex-wrap:wrap">${[["m","Monthly"],["q","Quarterly"],["y","Yearly"]].map(o=>`<button class="btn sm ${tgt===o[0]?"":"g"}" data-pt="${o[0]}">${o[1]}</button>`).join("")}</span><span style="display:flex;gap:6px;flex-wrap:wrap">${extra||""}${tgt==="m"?`<input type="month" id="tm" value="${tgMonth()}" style="width:auto">`:`<select id="tp" style="width:auto">${perOpts().map(o=>`<option value="${o[0]}"${o[0]===per.key?" selected":""}>${o[1]}</option>`).join("")}</select>`}</span></div><h2 style="margin:12px 0 0">${per.label}</h2>${tgt==="m"?"":'<p class="mute" style="margin:4px 0 0">Worked out automatically from the monthly figures.</p>'}</div>`}
+const tgCard=(l,n)=>`<div class="panel stat" style="margin:0"><span class="mute">${l}</span><b>${n}</b></div>`;
+function tgV(){const per=tgPer(),rows=tgRows(per.months),w=tgRanked(rows),sm=tgSum(rows),teams=tgTeams(rows),edt=canTab("inc"),hit=w.filter(r=>r.p>=100).length,inc=rows.reduce((s,r)=>s+r.i,0),miss=rows.filter(r=>!(r.t>0)),mon=per.type==="m";
+let side;
+if(mon)side=`<div class="panel"><h2>Last 6 months</h2>${tgMonths(per.key,6).map(x=>tgNb(mShort(x),tgSum(tgRows([x])))).join("")}</div>`;
+else if(per.type==="q")side=`<div class="panel"><h2>Month by month</h2>${per.months.map(x=>tgNb(mShort(x),tgSum(tgRows([x])))).join("")}</div>`;
+else{const fy=+per.key;side=`<div class="panel"><h2>Quarter by quarter</h2>${[1,2,3,4].map(n=>tgNb("Q"+n,tgSum(tgRows(qMonths(fy,n))))).join("")}<h2 style="margin-top:14px">Month by month</h2>${per.months.map(x=>tgNb(mShort(x),tgSum(tgRows([x])))).join("")}</div>`}
+return `<h1>Targets</h1><p class="sub">Enter the targets month by month. Quarterly and yearly results are worked out automatically. The figures come from the Incentives tab, one entry per employee per month.</p>
+${perBar()}
+<div class="grid" style="margin-bottom:16px">${tgCard("Total target",tgFmt(sm.T))}${tgCard("Total achieved",tgFmt(sm.A))}${tgCard("Achievement",sm.p==null?"-":sm.p+"%")}${tgCard("Reached 100%",hit+" of "+w.length)}${tgCard("Incentive payable","\u20B9"+inc.toLocaleString("en-IN"))}</div>
+${w.length?`<div class="two"><div class="panel"><h2>Team-wise</h2>${teams.map(t=>tgBar(t.n,t.p)).join("")}</div>${side}</div>
+<div class="panel"><h2>Performance</h2><div class="sc"><table><thead><tr><th>#</th><th>Name</th><th>Team</th><th>Target</th><th>Achieved</th><th>Achievement</th><th>Incentive</th></tr></thead><tbody>${w.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.e.name)}</td><td>${esc(r.e.team||"-")}</td><td>${tgFmt(r.t)}</td><td>${tgFmt(r.a)}</td><td><span class="pgt"><u><i class="${tcl(r.p)}" style="width:${Math.min(r.p,100)}%"></i></u>${r.p}%</span></td><td>${r.i?"\u20B9"+r.i.toLocaleString("en-IN"):"-"}</td></tr>`).join("")}</tbody></table></div></div>`:`<div class="panel"><p class="mute">No targets entered for ${per.label} yet.${edt&&mon?" Use the table below to add them.":edt?" Switch to Monthly to add them.":""}</p></div>`}
+${miss.length&&w.length?`<div class="panel"><h2>No target entered (${miss.length})</h2><p class="mute">${miss.map(r=>esc(r.e.name)).join(", ")}</p></div>`:""}
+${edt&&mon?`<div class="panel"><h2>Enter or update figures for ${per.label}</h2><p class="mute">Fill in the target, the achieved figure and the incentive for each employee, then click Save. The same figures appear in each employee's Incentives tab.</p><div class="sc"><table><thead><tr><th>Name</th><th>Team</th><th>Target</th><th>Achieved</th><th>Incentive (INR)</th></tr></thead><tbody>${rows.map(r=>{const v=k=>esc(String(r.x&&r.x[k]!=null?r.x[k]:""));return `<tr data-te="${esc(r.e.id)}"><td>${esc(r.e.name)}</td><td class="mute">${esc(r.e.team||"")}</td><td><input name="t" type="number" step="any" min="0" value="${v("target")}" style="width:120px"></td><td><input name="a" type="number" step="any" min="0" value="${v("ach")}" style="width:120px"></td><td><input name="i" type="number" step="any" min="0" value="${v("amt")}" style="width:120px"></td></tr>`}).join("")||`<tr><td colspan="5" class="mute">No employees yet.</td></tr>`}</tbody></table></div><p><button class="btn" id="tsave">Save figures</button></p></div>`:""}
+${fullEdit()?`<div class="panel"><h2>Settings</h2><div class="grid"><label>Unit shown next to numbers (for example ₹, cases or loans)<input id="tunit" value="${esc(tgUnit())}"></label><label>Year runs from<select id="tfy"><option value="4"${fyStart()===4?" selected":""}>April to March (financial year)</option><option value="1"${fyStart()===1?" selected":""}>January to December</option></select></label></div><p><button class="btn sm" id="tunits">Save settings</button></p></div>`:""}`}
+function lbMsg(label,top,all){const med=["\u{1F947}","\u{1F948}","\u{1F949}"],sm=tgSum(all),teams=tgTeams(all);
+return "\u{1F3C6} *Leaderboard - "+label+"* \u{1F3C6}\n"+(sm.p!=null?"Company achievement: *"+sm.p+"%*\n":"")+"\n"+top.map((r,i)=>(med[i]||(i+1)+".")+" "+r.e.name+" - "+r.p+"%").join("\n")+(teams.length>1?"\n\n*Team-wise*\n"+teams.map(t=>t.n+": "+t.p+"%").join("\n"):"")+"\n\nWell done everyone! Keep going \u{1F4AA}\n- HR, "+CO.name}
+function lbV(){const per=tgPer(),all=tgRows(per.months),rows=tgRanked(all),top=lbn?rows.slice(0,lbn):rows,wr=holRecips().filter(e=>waNum(e.phone)),sel=`<select id="lbn" style="width:auto">${[[5,"Top 5"],[10,"Top 10"],[0,"Everyone"]].map(o=>`<option value="${o[0]}"${o[0]===lbn?" selected":""}>${o[1]}</option>`).join("")}</select>`;
+return `<h1>Leaderboard</h1><p class="sub">Share the top performers for a month, a quarter or a year on WhatsApp.</p>
+${perBar(sel)}
+${rows.length?`<div class="panel"><h2>Ranking</h2><div class="sc"><table><thead><tr><th>#</th><th>Name</th><th>Team</th><th>Achievement</th></tr></thead><tbody>${top.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.e.name)}</td><td>${esc(r.e.team||"-")}</td><td><span class="pgt"><u><i class="${tcl(r.p)}" style="width:${Math.min(r.p,100)}%"></i></u>${r.p}%</span></td></tr>`).join("")}</tbody></table></div></div>
+<div class="panel"><h2>WhatsApp message</h2><p class="mute">Edit the message if you like, then share it. WhatsApp lets you pick a group or a contact.</p><textarea id="lbm" rows="14" style="width:100%">${esc(lbMsg(per.label,top,all))}</textarea><p><button class="btn" id="lbwa">Share on WhatsApp</button> <button class="btn sm g" id="lbcopy">Copy message</button></p>
+<details><summary class="mute" style="cursor:pointer">Send to each employee one by one (${wr.length} people)</summary><div class="lst">${wr.map(e=>`<div class="li"><span>${esc(e.name)} <span class="mute">${esc(e.phone)}</span></span><button class="btn sm" data-lw="${esc(e.id)}">WhatsApp</button></div>`).join("")}</div></details></div>`:`<div class="panel"><p class="mute">No targets have been entered for ${per.label} yet. Add them on the Targets page first.</p></div>`}`}
 function render(){$(".app").classList.toggle("out",!me);if(!me){$("#main").innerHTML=loginV();bind();return}$("#out").textContent="Sign out ("+me+")";
 if(loadErr){$("#main").innerHTML=errV();bind();return}
 if(!loaded){$("#main").innerHTML='<p class="mute">Loading data...</p>';return}
 $$("nav button").forEach(b=>b.setAttribute("aria-current",b.dataset.v===(v==="prof"?"list":v)));
-$("#main").innerHTML=({dash,list,prof,rep,log:logv,users:usersV,lv:lvV,hol:holV})[v]();bind()}
+$("#main").innerHTML=({dash,list,prof,rep,log:logv,users:usersV,lv:lvV,hol:holV,tg:tgV,lb:lbV})[v]();bind()}
 function bind(){
 $$("[data-open]").forEach(r=>r.onclick=()=>{cur=r.dataset.open;v="prof";tab="details";editing=false;render()});
 $$("[data-sv]").forEach(b=>b.onclick=async()=>{const w=window.open("about:blank","_blank");try{b.disabled=true;const u=await getDownloadURL(ref(storage,b.dataset.sv));if(w)w.location.href=u;else location.href=u}catch(x){if(w)w.close();toast("Could not open the file. It may have been removed, or you do not have permission.")}finally{b.disabled=false}});
@@ -399,6 +452,15 @@ if(g("#uf"))g("#uf").onsubmit=async ev=>{ev.preventDefault();const d=Object.from
 if(!nm||!em||d.pw.length<8)return toast("Enter a name, an email and a password of 8 or more characters");
 let a2=null;try{a2=initializeApp(firebaseConfig,"second"+Date.now());const au2=getAuth(a2);const c=await createUserWithEmailAndPassword(au2,em,d.pw);await setDoc(doc(db,"users",c.user.uid),{name:nm,email:em,role:d.role});await signOut(au2);log("Added user "+em+" ("+d.role+")");toast("User added. Share the email and temporary password with them.");render()}catch(x){toast(authMsg(x))}finally{if(a2)deleteApp(a2).catch(()=>{})}};
 $$("[data-pw]").forEach(b=>b.onclick=async()=>{try{await sendPasswordResetEmail(auth,b.dataset.pw);log("Sent password reset to "+b.dataset.pw);toast("Reset link sent to "+b.dataset.pw)}catch(x){toast(authMsg(x))}});
+if(g("#tm"))g("#tm").onchange=ev=>{tgm=ev.target.value||"";render()};
+if(g("#tp"))g("#tp").onchange=ev=>{if(tgt==="q")tgq=ev.target.value;else tgy=ev.target.value;render()};
+$$("[data-pt]").forEach(b=>b.onclick=()=>{tgt=b.dataset.pt;render()});
+if(g("#lbn"))g("#lbn").onchange=ev=>{lbn=parseInt(ev.target.value)||0;render()};
+if(g("#tunits"))g("#tunits").onclick=()=>{if(!fullEdit())return;S.cfg.tunit=g("#tunit").value.trim();S.cfg.fy=g("#tfy").value;save();toast("Settings saved");render()};
+if(g("#tsave"))g("#tsave").onclick=()=>{if(!canTab("inc"))return;const m=tgMonth();let n=0;$$("[data-te]").forEach(tr=>{const e=emp(tr.dataset.te);if(!e)return;const val=k=>(tr.querySelector("[name="+k+"]").value||"").trim(),t=val("t"),a=val("a"),i=val("i");let x=tgEnt(e,m);if(!x){if(!t&&!a&&!i)return;e.inc=e.inc||[];e.inc.push({month:m,target:t,ach:a,amt:i});n++;return}if(String(x.target??"")!==t||String(x.ach??"")!==a||String(x.amt??"")!==i){x.target=t;x.ach=a;x.amt=i;n++}});if(!n)return toast("Nothing changed");log("Updated targets for "+tgLabel(m)+" ("+n+" employees)");save();toast("Saved for "+n+" employees");render()};
+if(g("#lbwa"))g("#lbwa").onclick=()=>window.open("https://wa.me/?text="+encodeURIComponent(g("#lbm").value),"_blank","noopener");
+if(g("#lbcopy"))g("#lbcopy").onclick=()=>{navigator.clipboard.writeText(g("#lbm").value).then(()=>toast("Message copied"),()=>toast("Could not copy. Select the text and copy it."))};
+$$("[data-lw]").forEach(b=>b.onclick=()=>{const e=emp(b.dataset.lw);if(!e)return;window.open("https://wa.me/"+waNum(e.phone)+"?text="+encodeURIComponent(g("#lbm").value),"_blank","noopener")});
 $$("[data-nh]").forEach(b=>b.onclick=()=>{if(!fullEdit())return;nh=b.dataset.nh;v="hol";render();window.scrollTo(0,0)});
 if(g("#hf"))g("#hf").onsubmit=ev=>{ev.preventDefault();if(!fullEdit())return;const d=Object.fromEntries(new FormData(ev.target)),nm=(d.name||"").trim();if(!d.date||!nm)return toast("Enter the date and the holiday name");if(S.hol.some(x=>x.date===d.date&&x.name.toLowerCase()===nm.toLowerCase()))return toast("That holiday is already in the list");S.hol.push({id:"h"+Date.now(),date:d.date,name:nm});S.hol.sort(hsort);log("Added holiday "+nm+" on "+d.date);save();toast("Holiday added");render()};
 if(g("#hbulk"))g("#hbulk").onclick=()=>{if(!fullEdit())return;let n=0,k=0;(g("#hmany").value||"").split(/\r?\n/).forEach((ln,i)=>{ln=ln.trim();if(!ln)return;let m=ln.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})[\s,;:\-–]*(.*)$/),y,mo,da,nm;if(m){y=m[1];mo=m[2];da=m[3];nm=m[4]}else{m=ln.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})[\s,;:\-–]*(.*)$/);if(m){da=m[1];mo=m[2];y=m[3];nm=m[4]}}
