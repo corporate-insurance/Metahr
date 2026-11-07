@@ -572,7 +572,7 @@ ab.querySelectorAll("[data-mt]").forEach(b=>b.onclick=()=>{mtab=b.dataset.mt;edv
 ab.querySelectorAll("[data-nv]").forEach(b=>b.onclick=()=>{pre=latest().find(y=>y.phone===b.dataset.nv);mtab="entry";paint()});
 ab.querySelectorAll("[data-ed]").forEach(b=>b.onclick=()=>{edv=b.dataset.ed;paint()});
 const x=edv&&hist.find(y=>y.vid===edv);if(x&&$("#e_t")){$("#e_t").value=x.temp;$("#e_s").value=x.stage;$("#e_a").value=x.amt||"";$("#e_w").value=x.why||"";$("#e_x").onclick=()=>{edv=null;paint()};
-$("#e_save").onclick=async()=>{const amt=Math.max(0,Math.min(99999999,parseInt(String($("#e_a").value||"0").replace(/\D/g,""),10)||0));try{await setDoc(doc(db,"act",x.vid),{temp:$("#e_t").value,stage:$("#e_s").value,why:$("#e_w").value.trim().slice(0,300),amt,ed:serverTimestamp()},{merge:true});await loadHist();edv=null;paint("Updated.")}catch(e){toast("Could not save the change. It may be older than 7 days.")}}}}
+$("#e_save").onclick=async()=>{const amt=Math.max(0,Math.min(99999999,parseInt(String($("#e_a").value||"0").replace(/\D/g,""),10)||0));try{await setDoc(doc(db,"act",x.vid),{temp:$("#e_t").value,stage:$("#e_s").value,why:$("#e_w").value.trim().slice(0,300),amt,ed:serverTimestamp()},{merge:true});await loadHist();edv=null;paint("Updated.")}catch(e){toast((e&&e.code)==="permission-denied"?"Not allowed. The latest Firestore rules may not be published yet, or the entry is older than 7 days.":"Could not save the change ("+((e&&e.code)||"error")+"). Check your internet and try again.")}}}}
 function paintEntry(msg){
 ab.innerHTML=`${msg?`<p class="tag" style="display:block;padding:10px 12px;margin:0 0 12px">${esc(msg)}</p>`:""}<form id="af" novalidate>
 <label>Type<select name="type">${op(TYPES)}</select></label>
