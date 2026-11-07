@@ -153,6 +153,27 @@ const ab=q("#abox");let hist=[],working=false;
 const tm=t=>new Date(t).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
 async function loadHist(){try{const ss=await getDocs(query(collection(db,"act",TOK,"v"),orderBy("at","desc"),limit(60)));hist=ss.docs.map(d=>d.data())}catch(x){hist=[]}}
 async function shrink(file){const url=URL.createObjectURL(file);try{const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url});const s=Math.min(1,1280/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext("2d").drawImage(img,0,0,c.width,c.height);let ql=.7,b;do{b=await new Promise(r=>c.toBlob(r,"image/jpeg",ql));ql-=.1}while(b&&b.size>500*1024&&ql>.25);if(!b)throw new Error("blob");return b}finally{URL.revokeObjectURL(url)}}
+let ph=null;
+const getPos=()=>new Promise((res,rej)=>{if(!navigator.geolocation)return rej({code:0});navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:true,timeout:20000,maximumAge:0})});
+const locErr=x=>x&&x.code===1?"Location is blocked. Allow location for this page in your browser or phone settings, then try again.":"Could not get your location. Switch on GPS, go near a window and try again.";
+const showE=m=>{const e=q("#ae");if(e){e.textContent=m;e.style.display="block"}};
+const loadImg=file=>new Promise((res,rej)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{URL.revokeObjectURL(u);res(i)};i.onerror=rej;i.src=u});
+function stampBlob(src,w,h,pos,at){const s=Math.min(1,1280/Math.max(w,h)),c=document.createElement("canvas");c.width=Math.round(w*s);c.height=Math.round(h*s);const x=c.getContext("2d");x.drawImage(src,0,0,c.width,c.height);
+const t=new Date(at).toLocaleString("en-IN",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})+"  |  "+pos.coords.latitude.toFixed(5)+", "+pos.coords.longitude.toFixed(5),fs=Math.max(14,Math.round(c.width/38)),bh=fs*1.9;
+x.fillStyle="rgba(0,0,0,.6)";x.fillRect(0,c.height-bh,c.width,bh);x.font="600 "+fs+"px sans-serif";x.fillStyle="#fff";x.textBaseline="middle";x.fillText(t,fs*.6,c.height-bh/2);
+return new Promise(r=>{let ql=.75;const go=()=>c.toBlob(b=>{if(b&&b.size>500*1024&&ql>.3){ql-=.1;go()}else r(b)},"image/jpeg",ql);go()})}
+function showPrev(){const el=q("#pprev"),b=q("#pbtn");if(!el)return;el.innerHTML=ph?`<img src="${ph.url}" alt="" style="max-width:100%;border-radius:10px;margin-bottom:8px"><p class="mute" style="margin:0 0 8px">Photo taken ${tm(ph.at)}. Location recorded.</p>`:"";b.textContent=ph?"Retake photo":"Take photo"}
+function setPh(blob,pos,at){if(ph&&ph.url)URL.revokeObjectURL(ph.url);ph={blob,pos,at:at||Date.now(),url:URL.createObjectURL(blob)};showPrev()}
+async function takePhoto(){let posP=getPos();posP.catch(()=>{});
+const useFile=()=>{const pf=q("#pf");pf.onchange=async()=>{const file=pf.files[0];pf.value="";if(!file)return;try{const pos=await posP.catch(()=>getPos()),img=await loadImg(file);setPh(await stampBlob(img,img.width,img.height,pos,Date.now()),pos)}catch(x){showE(locErr(x))}};pf.click()};
+if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return useFile();
+let st;try{st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1920}},audio:false})}catch(x){return useFile()}
+const ov=document.createElement("div");ov.style.cssText="position:fixed;inset:0;background:#000;z-index:99;display:flex;flex-direction:column";
+ov.innerHTML='<video autoplay playsinline muted style="flex:1;min-height:0;width:100%;object-fit:contain"></video><p id="cmsg" style="color:#fff;text-align:center;margin:6px;font-size:13px"></p><div style="display:flex;gap:12px;justify-content:center;padding:12px"><button type="button" class="btn g" id="ccan">Cancel</button><button type="button" class="btn" id="csnap">Capture</button></div>';
+document.body.appendChild(ov);const v=ov.querySelector("video");v.srcObject=st;
+const close=()=>{st.getTracks().forEach(t=>t.stop());ov.remove()};
+ov.querySelector("#ccan").onclick=close;
+ov.querySelector("#csnap").onclick=async()=>{const m=ov.querySelector("#cmsg");if(!v.videoWidth)return;m.textContent="Getting location...";try{const pos=await posP,at=Date.now(),b=await stampBlob(v,v.videoWidth,v.videoHeight,pos,at);close();setPh(b,pos,at)}catch(x){m.textContent=locErr(x);posP=getPos();posP.catch(()=>{})}}}
 const tcl={Hot:"b",Warm:"w",Cold:""};
 function histHtml(){const td=ymd(new Date()),n=hist.filter(x=>ymd(new Date(x.at))===td).length;
 return `<h2 style="margin-top:22px">Today: ${n} entr${n===1?"y":"ies"}</h2>${hist.length?`<div class="lst">${hist.slice(0,15).map(x=>`<div class="li"><span><b>${esc(x.name)}</b> <span class="mute">${esc(x.phone)}</span><br><span class="mute">${esc(x.act)} &middot; ${esc(x.type)} &middot; ${tm(x.at)}</span></span><span><span class="tag ${tcl[x.temp]||""}">${esc(x.temp)}</span><br><span class="mute">${esc(x.stage)}</span></span></div>`).join("")}</div>`:'<p class="mute">No entries yet.</p>'}`}
@@ -166,28 +187,27 @@ ab.innerHTML=`${msg?`<p class="tag" style="display:block;padding:10px 12px;margi
 <label>Activity<select name="act">${op(ACTS)}</select></label>
 <label>Lead<select name="temp">${op(TEMPS)}</select></label>
 <label>Stage<select name="stage">${op(STAGES)}</select></label>
-<label>Photo at the location<input name="photo" type="file" accept="image/*" capture="environment"></label>
+<div><p style="margin:10px 0 6px;font-size:13px;font-weight:500">Photo at the location</p><div id="pprev"></div><p style="margin:0"><button type="button" class="btn sm g" id="pbtn">Take photo</button></p><input type="file" id="pf" accept="image/*" capture="environment" style="display:none"></div>
 <label>Remarks<textarea name="why" rows="2" maxlength="300"></textarea></label>
 <p class="tag b" id="ae" style="display:none;margin:12px 0 0;padding:8px 12px"></p>
 <p><button class="btn" id="ago">Check in and save</button></p>
-<p class="mute">Your phone will ask to share your location. Please allow it. The time, location and photo are saved with this entry.</p></form>${histHtml()}`;
-const f=q("#af"),showE=m=>{const e=q("#ae");e.textContent=m;e.style.display="block"};
+<p class="mute">Take the photo with the camera at the place. Allow location when asked. The date, time and location are saved on the photo and with this entry.</p></form>${histHtml()}`;
+showPrev();q("#pbtn").onclick=takePhoto;
+const f=q("#af");
 f.phone.oninput=()=>{f.phone.value=f.phone.value.replace(/\D/g,"").slice(0,10);const k=q("#known");if(f.phone.value.length!==10){k.textContent="";return}const h=hist.find(x=>x.phone===f.phone.value);if(h){f.name.value=h.name;f.type.value=h.type;f.temp.value=h.temp;f.stage.value=h.stage;k.textContent="Known: "+h.name+". Last stage "+h.stage+" ("+tm(h.at)+"). Update the stage if it has moved."}else k.textContent="New number."};
 f.onsubmit=async ev=>{ev.preventDefault();if(working)return;
-const d=Object.fromEntries(new FormData(f)),file=f.photo.files[0],name=(d.name||"").trim(),phone=(d.phone||"").replace(/\D/g,"");
-if(!/^[0-9]{10}$/.test(phone))return showE("Enter a 10 digit mobile number");if(!name)return showE("Enter the name");if(!file)return showE("Take a photo at the location");
-const b=q("#ago");working=true;b.disabled=true;b.textContent="Getting location...";
+const d=Object.fromEntries(new FormData(f)),name=(d.name||"").trim(),phone=(d.phone||"").replace(/\D/g,"");
+if(!/^[0-9]{10}$/.test(phone))return showE("Enter a 10 digit mobile number");if(!name)return showE("Enter the name");if(!ph)return showE("Take a photo at the location");
+const b=q("#ago");working=true;b.disabled=true;b.textContent="Uploading photo...";
 try{
-const pos=await new Promise((res,rej)=>{if(!navigator.geolocation)return rej({code:0});navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:true,timeout:20000,maximumAge:0})}).catch(x=>{throw {loc:x&&x.code}});
-b.textContent="Uploading photo...";
-const blob=await shrink(file),vid=newId(),sp="visits/"+ID+"/"+TOK+"/"+vid+".jpg";
+const pos=ph.pos,blob=ph.blob,vid=newId(),sp="visits/"+ID+"/"+TOK+"/"+vid+".jpg";
 await uploadBytes(ref(storage,sp),blob,{contentType:"image/jpeg"});
 b.textContent="Saving...";
 const c=pos.coords;
-await setDoc(doc(db,"act",TOK,"v",vid),{vid,id:ID,n:NAME,type:d.type,name,phone,act:d.act,temp:d.temp,stage:d.stage,why:(d.why||"").trim().slice(0,300),isNew:!!d.isNew,lat:+c.latitude.toFixed(6),lng:+c.longitude.toFixed(6),acc:Math.round(c.accuracy||0),photo:sp,at:Date.now(),ts:serverTimestamp()});
-await loadHist();working=false;paint("Saved. Time, location and photo recorded.")
+await setDoc(doc(db,"act",TOK,"v",vid),{vid,id:ID,n:NAME,type:d.type,name,phone,act:d.act,temp:d.temp,stage:d.stage,why:(d.why||"").trim().slice(0,300),isNew:!!d.isNew,lat:+c.latitude.toFixed(6),lng:+c.longitude.toFixed(6),acc:Math.round(c.accuracy||0),photo:sp,at:ph.at,ts:serverTimestamp()});
+ph=null;await loadHist();working=false;paint("Saved. Time, location and photo recorded.")
 }catch(x){working=false;b.disabled=false;b.textContent="Check in and save";
-showE(x&&x.loc===1?"Location is blocked. Allow location for this page in your browser or phone settings, then try again.":x&&x.loc!==undefined?"Could not get your location. Go outside or near a window, switch on GPS and try again.":x&&x.code==="storage/unauthorized"?"Photo not accepted. Please tell the admin the Storage rules are not published yet.":x&&x.code==="permission-denied"?"This link is not accepted. Please ask for a new link.":"Could not save. Check your internet and try again.")}}}
+showE(x&&x.code==="storage/unauthorized"?"Photo not accepted. Please tell the admin the Storage rules are not published yet.":x&&x.code==="permission-denied"?"This link is not accepted. Please ask for a new link.":"Could not save. Check your internet and try again.")}}}
 loadHist().then(()=>paint());return}
 q(".app").classList.add("out");document.title="Meta Fintech - Leave and details";
 q("#main").innerHTML='<div class="panel" style="width:100%;max-width:520px;margin:0 auto"><h1>Meta Fintech</h1><p class="tagline">🚗 Car loans &middot; 🔁 Refinance</p><p class="sub" id="hi"></p><div id="box"></div></div>';
