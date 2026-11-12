@@ -203,6 +203,7 @@ const dd=d=>Math.round((new Date(d+"T00:00")-new Date(today()+"T00:00"))/864e5);
 function ann(d){const t=new Date(today()+"T00:00"),x=new Date(d+"T00:00");const n=new Date(t.getFullYear(),x.getMonth(),x.getDate());if(n<t)n.setFullYear(t.getFullYear()+1);return Math.round((n-t)/864e5)}
 const mk=o=>({status:"Active",kind:"On roll",onb:{},ex:{},leave:[],inc:[],docs:[],assets:[],train:[],notes:[],...o});
 let S={emps:[],lr:[],cfg:{},log:[],users:[],hol:[],upd:[]};
+let PH={},boardMode=/^#board/.test(location.hash);if(boardMode)document.documentElement.classList.add("bdwait");
 let A={},actUn=[],actKeys={},actDay="",actEmp="",actMode="d",actTo="";
 const aYmd=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");actDay=aYmd(new Date());
 const canLink=()=>!!meP&&(meP.role==="Admin"||meP.role==="HR"||meP.role==="Team leader");
@@ -280,13 +281,14 @@ const firsts={};
 const authMsg=x=>{const c=(x&&x.code)||"";return /invalid-credential|wrong-password|user-not-found|invalid-email/.test(c)?"Wrong email or password":c==="auth/too-many-requests"?"Too many attempts. Wait a few minutes and try again":c==="auth/network-request-failed"?"No internet connection":c==="auth/email-already-in-use"?"That email is already registered. Use another email, or delete the old login in Firebase (Authentication, Users).":c==="auth/weak-password"?"Password is too weak. Use 8 or more characters":c==="permission-denied"?"You do not have permission to do that":"Something went wrong. Please try again"};
 function first(k){if(!firsts[k]){firsts[k]=1;ready++}if(!loaded&&ready>=need){loaded=true;syncPub();syncBal();pruneLogs();pruneLogins();render()}}
 function refresh(){if(!me||!loaded)return;const a=document.activeElement;if(a&&a.closest&&a.closest("#main")&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;render()}
-function stopListeners(){unsubs.forEach(f=>{try{f()}catch(x){}});unsubs=[];actUn.forEach(f=>{try{f()}catch(x){}});actUn=[];actKeys={};MTM={};MA={ym:"",acts:[]};A={};S={emps:[],lr:[],cfg:{},log:[],users:[],hol:[],upd:[]};snap.pub="";snap.ls={};snap.emps={};snap.lr={};snap.cfg="";snap.hol="";for(const k in firsts)delete firsts[k];ready=0;loaded=false;loadErr="";clearTimeout(btimer)}
+function stopListeners(){unsubs.forEach(f=>{try{f()}catch(x){}});unsubs=[];actUn.forEach(f=>{try{f()}catch(x){}});actUn=[];actKeys={};PH={};MTM={};MA={ym:"",acts:[]};A={};S={emps:[],lr:[],cfg:{},log:[],users:[],hol:[],upd:[]};snap.pub="";snap.ls={};snap.emps={};snap.lr={};snap.cfg="";snap.hol="";for(const k in firsts)delete firsts[k];ready=0;loaded=false;loadErr="";clearTimeout(btimer)}
 function startListeners(){if(unsubs.length)return;
 const err=k=>e=>{loadErr="Could not read the shared database ("+((e&&e.code)||"error")+").";first(k);render()};
 const tl=isTL();need=tl?2:7;unsubs=[
 onSnapshot(collection(db,"emps"),ss=>{let ch=false;const ids=new Set();ss.forEach(d=>{const e=d.data(),j=canon(e);ids.add(e.id);if(snap.emps[e.id]!==j){snap.emps[e.id]=j;const i=S.emps.findIndex(x=>x.id===e.id);if(i<0)S.emps.push(e);else S.emps[i]=e;ch=true}});
 Object.keys(snap.emps).forEach(id=>{if(!ids.has(id)){delete snap.emps[id];S.emps=S.emps.filter(x=>x.id!==id);ch=true}});
 S.emps.sort((a,b)=>(+String(a.id).slice(1))-(+String(b.id).slice(1)));first("emps");if(loaded)syncBal();if(ch)refresh()},err("emps")),
+onSnapshot(collection(db,"photos"),ss=>{const o={};ss.forEach(d=>{const x=d.data();if(x&&x.d)o[d.id]=x.d});PH=o;if(v==="tg"||boardMode)refresh()},()=>{}),
 onSnapshot(doc(db,"config","app"),sn=>{const c=sn.exists()?sn.data():{},j=canon(c);let ch=false;if(snap.cfg!==j){snap.cfg=j;S.cfg=c;ch=true}first("cfg");if(loaded)syncPub();if(loaded)syncBal();if(ch)refresh()},err("cfg")),
 ...(tl?[]:[
 onSnapshot(collection(db,"lr"),ss=>{let ch=false;const ks=new Set();if(firsts.lr)ss.docChanges().forEach(c=>{if(c.type==="added"&&!c.doc.metadata.hasPendingWrites){const r=c.doc.data();if(r.src==="link")toast("New leave request from "+(r.n||r.id))}});ss.forEach(d=>{const r=d.data(),j=canon(r);ks.add(d.id);if(snap.lr[d.id]!==j){snap.lr[d.id]=j;const i=S.lr.findIndex(x=>dkey(x.rid)===d.id);if(i<0)S.lr.push(r);else S.lr[i]=r;ch=true}});
@@ -392,7 +394,7 @@ const UPDL={phone:"Phone",email:"Email",address:"Current address",paddress:"Perm
 function pubObj(){const to=[...new Set(S.users.filter(u=>(u.role==="Admin"||u.role==="HR")&&u.email).map(u=>String(u.email).trim().toLowerCase()))];return{to,co:CO.name}}
 function syncPub(){if(!db||!fullEdit())return;const o=pubObj(),j=canon(o);if(snap.pub===j)return;snap.pub=j;setDoc(doc(db,"pub","form"),o).catch(()=>{snap.pub=""})}
 function updP(){if(!S.upd.length)return"";return `<div class="panel"><h2>Detail updates waiting for review (${S.upd.length})</h2><p class="mute">Sent by employees from their link. Check the changes, then apply them to the profile or dismiss them.</p><div class="sc"><table><thead><tr><th>Employee</th><th>Changes</th><th></th></tr></thead><tbody>${S.upd.map(u=>{const e=emp(u.id);return `<tr><td><b>${esc(e?e.name:u.n||u.id)}</b><br><span class="mute">${esc(u.id)}</span></td><td>${Object.keys(u.ch||{}).filter(k=>UPDL[k]).map(k=>`${UPDL[k]}: <span class="mute">${esc(e&&e[k]||"-")}</span> &rarr; <b>${esc(u.ch[k])}</b>`).join("<br>")}</td><td><button class="btn sm" data-ua="${esc(u.key)}">Apply</button> <button class="btn sm d" data-ud="${esc(u.key)}">Dismiss</button></td></tr>`}).join("")}</tbody></table></div></div>`}
-const RULES="rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    function signedIn() { return request.auth != null; }\n    function me() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }\n    function isStaff() {\n      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))\n        && !(me().role in ['Team leader', 'Operations', 'Marketing']);\n    }\n    // NEW: Team leader and Operations can only see employees (read only)\n    function isTL() {\n      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))\n        && me().role in ['Team leader', 'Operations'];\n    }\n    // NEW: only Operations can edit targets (Team leader is view only)\n    function isOps() {\n      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))\n        && me().role == 'Operations';\n    }\n    // NEW: Marketing team logins can only use the activity tracker\n    function isMkt() {\n      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))\n        && me().role == 'Marketing';\n    }\n    function isAdmin() { return isStaff() && me().role == 'Admin'; }\n    function isEditor() { return isStaff() && me().role in ['Admin', 'HR']; }\n    function isAccounts() { return isStaff() && me().role == 'Accounts'; }\n\n    // NEW: checks the private code in an employee's link\n    function linkTokOk(d) {\n      return d.id is string && d.tok is string\n        && get(/databases/$(database)/documents/emps/$(d.id)).data.tok == d.tok;\n    }\n\n    match /users/{uid} {\n      allow read: if isStaff() || (signedIn() && request.auth.uid == uid);\n      allow create: if isAdmin() || (isEditor() && request.resource.data.role == 'Marketing') || (\n        signedIn() && request.auth.uid == uid\n        && request.resource.data.role == 'Admin'\n        && !exists(/databases/$(database)/documents/config/bootstrap)\n        && existsAfter(/databases/$(database)/documents/config/bootstrap));\n      allow update: if isAdmin() || (isEditor() && resource.data.role == 'Marketing' && request.resource.data.role == 'Marketing');\n      allow delete: if isAdmin() || (isEditor() && resource.data.role == 'Marketing');\n    }\n    match /config/bootstrap {\n      allow create: if signedIn()\n        && !exists(/databases/$(database)/documents/config/bootstrap)\n        && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid));\n    }\n    match /config/{docId} {\n      allow read: if isStaff() || (isTL() && docId == 'app');\n      allow write: if isEditor() && docId != 'bootstrap';\n    }\n    match /emps/{id} {\n      allow read: if isStaff() || isTL();\n      allow create, delete: if isEditor();\n      allow update: if isEditor()\n        || (isOps() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inc']))\n        || (isAccounts()\n        && request.resource.data.diff(resource.data).affectedKeys()\n           .hasOnly(['salary','pf','esi','tds','bankName','bank','ifsc','pan','uan','inc']));\n    }\n\n    match /lr/{id} {\n      allow read: if isStaff();\n      allow write: if isEditor();\n      // NEW: employee leave request sent from the private link\n      allow create: if request.resource.data.keys().hasOnly(['rid','id','n','type','from','to','why','st','at','tok','src'])\n        && id == request.resource.data.rid\n        && request.resource.data.st == 'Pending'\n        && request.resource.data.src == 'link'\n        && request.resource.data.type in ['Paid leave','Sick leave','Half day','Unpaid leave']\n        && request.resource.data.why is string && request.resource.data.why.size() <= 300\n        && linkTokOk(request.resource.data);\n    }\n\n    // NEW: employee detail updates waiting for HR review\n    match /upd/{id} {\n      allow create: if request.resource.data.keys().hasOnly(['id','tok','n','ch','st','at'])\n        && request.resource.data.st == 'Pending'\n        && request.resource.data.ch is map && request.resource.data.ch.size() <= 10\n        && request.resource.data.ch.keys().hasOnly(['phone','email','address','paddress','emerg','erel','ephone','bankName','bank','ifsc'])\n        && linkTokOk(request.resource.data);\n      allow read, update, delete: if isEditor();\n    }\n\n    // NEW: who gets the emails (the employee page reads this)\n    match /pub/{id} {\n      allow get: if true;\n      allow write: if isEditor();\n    }\n\n    // NEW: leave status that an employee sees on their link (private path = their link code)\n    match /ls/{tok}/r/{rid} {\n      allow read: if true;\n      allow create: if request.resource.data.keys().hasOnly(['rid','id','type','from','to','why','st','at'])\n        && request.resource.data.st == 'Pending'\n        && rid == request.resource.data.rid\n        && request.resource.data.id is string\n        && get(/databases/$(database)/documents/emps/$(request.resource.data.id)).data.tok == tok;\n      allow write: if isEditor();\n    }\n\n    match /ls/{tok}/info/{d} {\n      allow read: if true;\n      allow write: if isEditor();\n    }\n\n    match /act/{vid} {\n      allow read: if isStaff() || isTL() || (isMkt() && resource.data.uid == request.auth.uid);\n      allow create: if isMkt() && request.resource.data.uid == request.auth.uid\n        && request.resource.data.id == me().empId\n        && request.resource.data.keys().hasOnly(['vid','uid','amt','dam','lg','id','n','type','name','phone','act','temp','stage','why','isNew','lat','lng','acc','photo','at','ts'])\n        && vid == request.resource.data.vid\n        && request.resource.data.id is string\n        && request.resource.data.amt is number && request.resource.data.amt >= 0 && request.resource.data.amt <= 100000000\n        && request.resource.data.dam is number && request.resource.data.dam >= 0 && request.resource.data.dam <= 1000000000\n        && request.resource.data.lg is bool\n        && request.resource.data.photo.matches('^visits/' + request.auth.uid + '/.*')\n        && request.resource.data.n is string && request.resource.data.n.size() <= 80\n        && request.resource.data.type in ['Used car dealer','New car dealer','Freelancer','Finance executive','Others','Refinance']\n        && request.resource.data.act in ['Visit','Call','Collecting documents','Enquiry follow-up']\n        && request.resource.data.temp in ['Hot','Warm','Cold']\n        && request.resource.data.stage in ['Enquiry','Documentation','Documents collected','Login','Disbursed']\n        && request.resource.data.name is string && request.resource.data.name.size() >= 1 && request.resource.data.name.size() <= 80\n        && request.resource.data.phone is string && request.resource.data.phone.matches('^[0-9]{10}$')\n        && request.resource.data.why is string && request.resource.data.why.size() <= 300\n        && request.resource.data.isNew is bool\n        && request.resource.data.lat is number && request.resource.data.lat >= -90 && request.resource.data.lat <= 90\n        && request.resource.data.lng is number && request.resource.data.lng >= -180 && request.resource.data.lng <= 180\n        && request.resource.data.acc is number\n        && request.resource.data.photo is string\n        && request.resource.data.at is int\n        && request.resource.data.ts == request.time;\n      allow update: if isMkt() && resource.data.uid == request.auth.uid\n        && resource.data.ts + duration.value(7, 'd') > request.time\n        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stage','temp','why','amt','dam','lg','ed'])\n        && request.resource.data.stage in ['Enquiry','Documentation','Documents collected','Login','Disbursed']\n        && request.resource.data.temp in ['Hot','Warm','Cold']\n        && request.resource.data.why is string && request.resource.data.why.size() <= 300\n        && request.resource.data.amt is number && request.resource.data.amt >= 0 && request.resource.data.amt <= 100000000\n        && request.resource.data.dam is number && request.resource.data.dam >= 0 && request.resource.data.dam <= 1000000000\n        && (!('lg' in request.resource.data) || request.resource.data.lg is bool)\n        && request.resource.data.ed == request.time;\n      allow delete: if isEditor();\n    }\n\n    // NEW: monthly marketing targets. Admin and Operations can set them; every signed-in user can read.\n    match /mt/{m} {\n      allow read: if isStaff() || isTL() || isMkt();\n      allow write: if isAdmin() || isOps();\n    }\n\n    // NEW: sign-in history of Marketing logins\n    match /logins/{id} {\n      allow read: if isStaff();\n      allow create: if isMkt() && request.resource.data.keys().hasOnly(['uid','name','email','at','dev','lat','lng'])\n        && request.resource.data.uid == request.auth.uid\n        && request.resource.data.at == request.time;\n      allow update: if false;\n      allow delete: if isEditor();\n    }\n\n    match /logs/{id} { allow read: if isStaff(); allow create: if isStaff() || isTL(); allow delete: if isEditor(); }\n    match /mail/{id} {\n      allow read: if isEditor();\n      allow create: if isEditor()\n        && request.resource.data.keys().hasOnly(['to','holId','empId','sentBy','message'])\n        && request.resource.data.to is string\n        && request.resource.data.sentBy == request.auth.uid;\n      // NEW: notification email sent from an employee link (only to HR/Admin addresses)\n      allow create: if request.resource.data.keys().hasOnly(['to','kind','empId','tok','at','message'])\n        && request.resource.data.kind == 'link'\n        && request.resource.data.to is list\n        && request.resource.data.to.size() >= 1 && request.resource.data.to.size() <= 10\n        && request.resource.data.to.hasOnly(get(/databases/$(database)/documents/pub/form).data.to)\n        && request.resource.data.empId is string\n        && get(/databases/$(database)/documents/emps/$(request.resource.data.empId)).data.tok == request.resource.data.tok\n        && request.resource.data.message.keys().hasOnly(['subject','text','html'])\n        && request.resource.data.message.subject.size() <= 200\n        && request.resource.data.message.text.size() <= 1500\n        && request.resource.data.message.html.size() <= 4000;\n      allow update, delete: if false;\n    }\n  }\n}\n";
+const RULES="rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    function signedIn() { return request.auth != null; }\n    function me() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }\n    function isStaff() {\n      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))\n        && !(me().role in ['Team leader', 'Operations', 'Marketing']);\n    }\n    // NEW: Team leader and Operations can only see employees (read only)\n    function isTL() {\n      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))\n        && me().role in ['Team leader', 'Operations'];\n    }\n    // NEW: only Operations can edit targets (Team leader is view only)\n    function isOps() {\n      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))\n        && me().role == 'Operations';\n    }\n    // NEW: Marketing team logins can only use the activity tracker\n    function isMkt() {\n      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))\n        && me().role == 'Marketing';\n    }\n    function isAdmin() { return isStaff() && me().role == 'Admin'; }\n    function isEditor() { return isStaff() && me().role in ['Admin', 'HR']; }\n    function isAccounts() { return isStaff() && me().role == 'Accounts'; }\n\n    // NEW: checks the private code in an employee's link\n    function linkTokOk(d) {\n      return d.id is string && d.tok is string\n        && get(/databases/$(database)/documents/emps/$(d.id)).data.tok == d.tok;\n    }\n\n    match /users/{uid} {\n      allow read: if isStaff() || (signedIn() && request.auth.uid == uid);\n      allow create: if isAdmin() || (isEditor() && request.resource.data.role == 'Marketing') || (\n        signedIn() && request.auth.uid == uid\n        && request.resource.data.role == 'Admin'\n        && !exists(/databases/$(database)/documents/config/bootstrap)\n        && existsAfter(/databases/$(database)/documents/config/bootstrap));\n      allow update: if isAdmin() || (isEditor() && resource.data.role == 'Marketing' && request.resource.data.role == 'Marketing');\n      allow delete: if isAdmin() || (isEditor() && resource.data.role == 'Marketing');\n    }\n    match /config/bootstrap {\n      allow create: if signedIn()\n        && !exists(/databases/$(database)/documents/config/bootstrap)\n        && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid));\n    }\n    match /config/{docId} {\n      allow read: if isStaff() || (isTL() && docId == 'app');\n      allow write: if isEditor() && docId != 'bootstrap';\n    }\n    match /emps/{id} {\n      allow read: if isStaff() || isTL();\n      allow create, delete: if isEditor();\n      allow update: if isEditor()\n        || (isOps() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inc']))\n        || (isAccounts()\n        && request.resource.data.diff(resource.data).affectedKeys()\n           .hasOnly(['salary','pf','esi','tds','bankName','bank','ifsc','pan','uan','inc']));\n    }\n\n    match /lr/{id} {\n      allow read: if isStaff();\n      allow write: if isEditor();\n      // NEW: employee leave request sent from the private link\n      allow create: if request.resource.data.keys().hasOnly(['rid','id','n','type','from','to','why','st','at','tok','src'])\n        && id == request.resource.data.rid\n        && request.resource.data.st == 'Pending'\n        && request.resource.data.src == 'link'\n        && request.resource.data.type in ['Paid leave','Sick leave','Half day','Unpaid leave']\n        && request.resource.data.why is string && request.resource.data.why.size() <= 300\n        && linkTokOk(request.resource.data);\n    }\n\n    // NEW: employee detail updates waiting for HR review\n    match /upd/{id} {\n      allow create: if request.resource.data.keys().hasOnly(['id','tok','n','ch','st','at'])\n        && request.resource.data.st == 'Pending'\n        && request.resource.data.ch is map && request.resource.data.ch.size() <= 10\n        && request.resource.data.ch.keys().hasOnly(['phone','email','address','paddress','emerg','erel','ephone','bankName','bank','ifsc'])\n        && linkTokOk(request.resource.data);\n      allow read, update, delete: if isEditor();\n    }\n\n    // NEW: who gets the emails (the employee page reads this)\n    match /pub/{id} {\n      allow get: if true;\n      allow write: if isEditor();\n    }\n\n    // NEW: leave status that an employee sees on their link (private path = their link code)\n    match /ls/{tok}/r/{rid} {\n      allow read: if true;\n      allow create: if request.resource.data.keys().hasOnly(['rid','id','type','from','to','why','st','at'])\n        && request.resource.data.st == 'Pending'\n        && rid == request.resource.data.rid\n        && request.resource.data.id is string\n        && get(/databases/$(database)/documents/emps/$(request.resource.data.id)).data.tok == tok;\n      allow write: if isEditor();\n    }\n\n    match /ls/{tok}/info/{d} {\n      allow read: if true;\n      allow write: if isEditor();\n    }\n\n    match /act/{vid} {\n      allow read: if isStaff() || isTL() || (isMkt() && resource.data.uid == request.auth.uid);\n      allow create: if isMkt() && request.resource.data.uid == request.auth.uid\n        && request.resource.data.id == me().empId\n        && request.resource.data.keys().hasOnly(['vid','uid','amt','dam','lg','id','n','type','name','phone','act','temp','stage','why','isNew','lat','lng','acc','photo','at','ts'])\n        && vid == request.resource.data.vid\n        && request.resource.data.id is string\n        && request.resource.data.amt is number && request.resource.data.amt >= 0 && request.resource.data.amt <= 100000000\n        && request.resource.data.dam is number && request.resource.data.dam >= 0 && request.resource.data.dam <= 1000000000\n        && request.resource.data.lg is bool\n        && request.resource.data.photo.matches('^visits/' + request.auth.uid + '/.*')\n        && request.resource.data.n is string && request.resource.data.n.size() <= 80\n        && request.resource.data.type in ['Used car dealer','New car dealer','Freelancer','Finance executive','Others','Refinance']\n        && request.resource.data.act in ['Visit','Call','Collecting documents','Enquiry follow-up']\n        && request.resource.data.temp in ['Hot','Warm','Cold']\n        && request.resource.data.stage in ['Enquiry','Documentation','Documents collected','Login','Disbursed']\n        && request.resource.data.name is string && request.resource.data.name.size() >= 1 && request.resource.data.name.size() <= 80\n        && request.resource.data.phone is string && request.resource.data.phone.matches('^[0-9]{10}$')\n        && request.resource.data.why is string && request.resource.data.why.size() <= 300\n        && request.resource.data.isNew is bool\n        && request.resource.data.lat is number && request.resource.data.lat >= -90 && request.resource.data.lat <= 90\n        && request.resource.data.lng is number && request.resource.data.lng >= -180 && request.resource.data.lng <= 180\n        && request.resource.data.acc is number\n        && request.resource.data.photo is string\n        && request.resource.data.at is int\n        && request.resource.data.ts == request.time;\n      allow update: if isMkt() && resource.data.uid == request.auth.uid\n        && resource.data.ts + duration.value(7, 'd') > request.time\n        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stage','temp','why','amt','dam','lg','ed'])\n        && request.resource.data.stage in ['Enquiry','Documentation','Documents collected','Login','Disbursed']\n        && request.resource.data.temp in ['Hot','Warm','Cold']\n        && request.resource.data.why is string && request.resource.data.why.size() <= 300\n        && request.resource.data.amt is number && request.resource.data.amt >= 0 && request.resource.data.amt <= 100000000\n        && request.resource.data.dam is number && request.resource.data.dam >= 0 && request.resource.data.dam <= 1000000000\n        && (!('lg' in request.resource.data) || request.resource.data.lg is bool)\n        && request.resource.data.ed == request.time;\n      allow delete: if isEditor();\n    }\n\n    // NEW: monthly marketing targets. Admin and Operations can set them; every signed-in user can read.\n    match /mt/{m} {\n      allow read: if isStaff() || isTL() || isMkt();\n      allow write: if isAdmin() || isOps();\n    }\n\n    // NEW: sign-in history of Marketing logins\n    match /logins/{id} {\n      allow read: if isStaff();\n      allow create: if isMkt() && request.resource.data.keys().hasOnly(['uid','name','email','at','dev','lat','lng'])\n        && request.resource.data.uid == request.auth.uid\n        && request.resource.data.at == request.time;\n      allow update: if false;\n      allow delete: if isEditor();\n    }\n\n    // NEW: agent photos for the display board (small pictures, Admin and Operations only)\n    match /photos/{id} {\n      allow read: if isStaff() || isTL();\n      allow write: if (isAdmin() || isOps()) && (request.resource == null || (request.resource.data.keys().hasOnly(['d','at']) && request.resource.data.d is string && request.resource.data.d.size() < 200000));\n    }\n\n    match /logs/{id} { allow read: if isStaff(); allow create: if isStaff() || isTL(); allow delete: if isEditor(); }\n    match /mail/{id} {\n      allow read: if isEditor();\n      allow create: if isEditor()\n        && request.resource.data.keys().hasOnly(['to','holId','empId','sentBy','message'])\n        && request.resource.data.to is string\n        && request.resource.data.sentBy == request.auth.uid;\n      // NEW: notification email sent from an employee link (only to HR/Admin addresses)\n      allow create: if request.resource.data.keys().hasOnly(['to','kind','empId','tok','at','message'])\n        && request.resource.data.kind == 'link'\n        && request.resource.data.to is list\n        && request.resource.data.to.size() >= 1 && request.resource.data.to.size() <= 10\n        && request.resource.data.to.hasOnly(get(/databases/$(database)/documents/pub/form).data.to)\n        && request.resource.data.empId is string\n        && get(/databases/$(database)/documents/emps/$(request.resource.data.empId)).data.tok == request.resource.data.tok\n        && request.resource.data.message.keys().hasOnly(['subject','text','html'])\n        && request.resource.data.message.subject.size() <= 200\n        && request.resource.data.message.text.size() <= 1500\n        && request.resource.data.message.html.size() <= 4000;\n      allow update, delete: if false;\n    }\n  }\n}\n";
 function linksP(){const rows=S.emps.filter(e=>e.status!=="Resigned"),miss=rows.filter(e=>!e.tok).length,to=pubObj().to;
 return `<div class="panel"><h2>Employee link: request leave or update details</h2>
 <p class="mute">Send each employee their own private link. They can request leave or send changes to their details. Leave requests show up on the Leave requests page, and ${to.length?esc(to.join(" and ")):"HR and Admin"} get an email.</p>
@@ -560,6 +562,256 @@ const tgNb=(l,s)=>s.p==null?`<div class="pg"><span>${esc(l)}</span><span class="
 const tgRanked=rows=>rows.filter(r=>r.t>0).sort((a,b)=>b.p-a.p||b.a-a.a);
 function perBar(extra){const per=tgPer();return `<div class="panel"><div class="row"><span style="display:flex;gap:6px;flex-wrap:wrap">${[["m","Monthly"],["q","Quarterly"],["y","Yearly"]].map(o=>`<button class="btn sm ${tgt===o[0]?"":"g"}" data-pt="${o[0]}">${o[1]}</button>`).join("")}</span><span style="display:flex;gap:6px;flex-wrap:wrap">${extra||""}${tgt==="m"?`<input type="month" id="tm" value="${tgMonth()}" style="width:auto">`:`<select id="tp" style="width:auto">${perOpts().map(o=>`<option value="${o[0]}"${o[0]===per.key?" selected":""}>${o[1]}</option>`).join("")}</select>`}</span></div><h2 style="margin:12px 0 0">${per.label}</h2>${tgt==="m"?"":'<p class="mute" style="margin:4px 0 0">Worked out automatically from the monthly figures.</p>'}</div>`}
 const tgCard=(l,n)=>`<div class="panel stat" style="margin:0"><span class="mute">${l}</span><b>${n}</b></div>`;
+
+const bdTitle=()=>{try{return localStorage.getItem("bdTitle")||"Team performance"}catch(x){return "Team performance"}};
+function phResize(f){return new Promise((res,rej)=>{const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const Z=440,c=document.createElement("canvas");c.width=c.height=Z;const x=c.getContext("2d"),m=Math.min(im.width,im.height),sx=(im.width-m)/2,sy=Math.max(0,(im.height-m)*.15);x.drawImage(im,sx,sy,m,m,0,0,Z,Z);URL.revokeObjectURL(u);res(c.toDataURL("image/jpeg",.78))};im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("bad image"))};im.src=u})}
+function boardPanel(){const pool=tgPool();return `<div class="panel"><h2>Display board</h2><p class="mute">Opens the office TV board in a new window: one agent at a time with photo, team (reporting manager), target, achieved and pending for the period selected above. It rotates by itself and updates when figures are saved. In Edge, press F11 for full screen. Move the mouse to show the Controls button.</p><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end"><button class="btn" id="bopen">Open display board</button><label>Board title<input id="btitle" value="${esc(bdTitle())}" style="width:260px"></label></div><h2 style="margin-top:16px">Agent photos</h2><div class="sc"><table><thead><tr><th>Photo</th><th>Name</th><th>Team</th><th></th></tr></thead><tbody>${pool.map(e=>`<tr><td>${PH[e.id]?`<img src="${PH[e.id]}" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover">`:'<span class="mute">None</span>'}</td><td>${esc(e.name)}</td><td class="mute">${esc(e.mgr||"-")}</td><td><label class="btn sm g" style="cursor:pointer">Upload photo<input type="file" accept="image/*" data-ph="${esc(e.id)}" hidden></label>${PH[e.id]?` <button class="btn sm g" data-phx="${esc(e.id)}">Remove</button>`:""}</td></tr>`).join("")||'<tr><td colspan="4" class="mute">No employees yet.</td></tr>'}</tbody></table></div></div>`}
+
+const TB=(()=>{
+const CSS=`
+:host{--bg:#0c2431;--panel:#143445;--panel2:#1f4a60;--ink:#eef3f5;--muted:#93b3c3;--line:#2a5167;--good:#5fd7a2;--warn:#f4b942;--bad:#ff7a6b;--onbtn:#062a1d;position:fixed;inset:0;z-index:2147483000;display:block;background:var(--bg);color:var(--ink);font-family:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:16px;line-height:1.45;overflow:hidden}
+@media (prefers-color-scheme: light){:host(:not([data-theme="dark"])){--bg:#eaf1f4;--panel:#ffffff;--panel2:#dbe8ee;--ink:#0c2431;--muted:#4d6e7e;--line:#c3d6de;--good:#0f8a5c;--warn:#a96d00;--bad:#c4402f;--onbtn:#ffffff}}
+:host([data-theme="light"]){--bg:#eaf1f4;--panel:#ffffff;--panel2:#dbe8ee;--ink:#0c2431;--muted:#4d6e7e;--line:#c3d6de;--good:#0f8a5c;--warn:#a96d00;--bad:#c4402f;--onbtn:#ffffff}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none !important}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
+/* ---------- Board ---------- */
+#board{height:100%;display:flex;flex-direction:column;padding:2.2vh 2vw 1.6vh;position:relative}
+.timer{position:absolute;left:0;right:0;top:0;height:4px}
+.timer i{display:block;height:100%;width:0;background:var(--good)}
+.timer i.run{animation:fillbar linear forwards}
+@keyframes fillbar{from{width:0}to{width:100%}}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:2vw;flex:none}
+.ttl h1{font-family:'Barlow Condensed','Arial Narrow',Impact,sans-serif;font-weight:700;font-size:clamp(28px,5.4vh,66px);line-height:1;margin:0}
+.ttl p{margin:.4vh 0 0;color:var(--muted);font-size:clamp(14px,2.2vh,26px)}
+.tot{display:flex;gap:clamp(14px,2.6vw,48px);text-align:right}
+.tot div b{display:block;font-family:'Barlow Condensed','Arial Narrow',Impact,sans-serif;font-weight:700;font-size:clamp(26px,5.2vh,64px);line-height:1}
+.tot div span{color:var(--muted);font-size:clamp(12px,1.9vh,22px)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:1.6vh 0 1.4vh;flex:none}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:.5vh 1.1vw;cursor:pointer;font-size:clamp(13px,2.1vh,24px);font-weight:500;white-space:nowrap}
+.chip b{font-family:'Barlow Condensed','Arial Narrow',Impact,sans-serif;font-size:1.15em;margin-left:.4em;color:var(--good)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip[aria-pressed="true"] b{color:var(--bg)}
+.chips2{margin-top:-.6vh}
+.chips2 .chip{background:transparent;font-size:clamp(12px,1.8vh,21px)}
+.chips2 .chip[aria-pressed="true"]{background:var(--ink)}
+.grid{flex:1;min-height:0;display:grid;gap:1.4vh 1vw}
+.grid.stack{grid-template-columns:1fr;grid-auto-rows:240px;overflow:auto}
+.grid.swap .card{animation:cardin .45s ease both}
+@keyframes cardin{from{opacity:0}to{opacity:1}}
+.foot{flex:none;display:flex;justify-content:space-between;align-items:center;margin-top:1.2vh;color:var(--muted);font-size:clamp(12px,1.9vh,20px)}
+.dots{display:flex;gap:6px}
+.dots i{width:10px;height:10px;border-radius:99px;background:var(--panel2)}
+.dots i.on{width:28px;background:var(--ink)}
+
+.card{position:relative;container-type:size;container-name:card;background:var(--panel);border:1px solid var(--line);border-radius:14px;min-width:0;min-height:0;overflow:hidden}
+.card.empty{background:transparent;border-style:dashed;border-color:var(--line);opacity:.35}
+.inner{--cu:min(1cqw,1.7cqh);height:100%;padding:calc(var(--cu)*3);display:grid;
+  grid-template-rows:minmax(0,1fr) auto auto auto;
+  grid-template-areas:"photo" "head" "bar" "stats";gap:calc(var(--cu)*2.4)}
+.face{grid-area:photo;min-height:0;display:flex;flex-direction:column;align-items:center;gap:calc(var(--cu)*1.2)}
+.photo{display:block;width:100%;object-fit:cover;object-position:50% 22%;border-radius:calc(var(--cu)*2)}
+.avatar{width:100%;border-radius:calc(var(--cu)*2);display:flex;align-items:center;justify-content:center;
+  font-family:'Barlow Condensed','Arial Narrow',Impact,sans-serif;font-weight:700;font-size:calc(var(--cu)*18);color:#eef3f5;letter-spacing:.02em}
+.face .photo,.face .avatar{flex:1 1 0;height:0;min-height:0}
+.crown{flex:none;height:calc(var(--cu)*10);aspect-ratio:64/44;display:block}
+.card[data-idx]{cursor:pointer}
+.card.crowned{border-color:var(--k);border-width:2px}
+.rank{position:absolute;top:calc(var(--cu)*4.2);left:calc(var(--cu)*4.2);background:var(--bg);color:var(--ink);border-radius:99px;padding:0 calc(var(--cu)*2.4);
+  font-family:'Barlow Condensed','Arial Narrow',Impact,sans-serif;font-weight:700;font-size:calc(var(--cu)*6);line-height:1.5}
+.head{grid-area:head;display:flex;justify-content:space-between;align-items:flex-end;gap:calc(var(--cu)*2);min-width:0}
+.who{min-width:0}
+.name{font-family:'Barlow Condensed','Arial Narrow',Impact,sans-serif;font-weight:700;font-size:calc(var(--cu)*7.4);line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dept{color:var(--muted);font-size:calc(var(--cu)*4.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pct{font-family:'Barlow Condensed','Arial Narrow',Impact,sans-serif;font-weight:700;font-size:calc(var(--cu)*10.5);line-height:1;color:var(--c)}
+.track{grid-area:bar;height:calc(var(--cu)*2.4);border-radius:99px;background:var(--panel2);overflow:hidden}
+.fill{height:100%;border-radius:inherit;background:var(--c)}
+.stats{grid-area:stats;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:calc(var(--cu)*2)}
+.stats b{display:block;font-family:'Barlow Condensed','Arial Narrow',Impact,sans-serif;font-weight:700;font-size:calc(var(--cu)*8.8);line-height:1;white-space:nowrap}
+.stats span{color:var(--muted);font-size:calc(var(--cu)*4.2)}
+.stats .a b{color:var(--good)} .stats .p b{color:var(--warn)}
+
+@container card (max-height:340px){
+  .inner{grid-template-rows:auto auto auto;grid-template-columns:auto minmax(0,1fr);
+    grid-template-areas:"photo head" "bar bar" "stats stats";align-content:space-between;align-items:center}
+  .face{width:32cqh}
+  .face .photo,.face .avatar{flex:none;width:32cqh;height:32cqh;border-radius:50%}
+  .avatar{font-size:calc(32cqh*.38)}
+  .crown{height:calc(var(--cu)*7)}
+  .rank{display:none}
+}
+
+/* spotlight */
+.spotwrap{flex:1;min-height:0;display:flex}
+.spot{flex:1;min-height:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4vw;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:2.5vh 3vw;--ph:min(54vh,34vw);overflow:hidden}
+.spot.crowned{border-color:var(--k);border-width:2px}
+.spot.swap{animation:cardin .45s ease both}
+.sface{display:flex;flex-direction:column;align-items:center;gap:1.2vh}
+.sface .crown{height:9vh}
+.sface .photo,.sface .avatar{width:var(--ph);height:var(--ph);flex:none;border-radius:2.4vh;object-position:50% 25%}
+.sface .avatar{font-size:calc(var(--ph)*.34)}
+.sinfo{min-width:0;display:flex;flex-direction:column;gap:1.6vh}
+.sname{font-family:'Barlow Condensed','Arial Narrow',Impact,sans-serif;font-weight:700;font-size:clamp(34px,10vh,130px);line-height:1;overflow-wrap:anywhere}
+.sdept{font-size:clamp(18px,3.8vh,44px);font-weight:500}
+.ssub{color:var(--muted);font-size:clamp(14px,2.6vh,32px)}
+.srow{display:flex;align-items:center;gap:3vw;flex-wrap:wrap;margin-top:1.6vh}
+.ring{width:clamp(150px,31vh,400px);flex:none}
+.ringbg{fill:none;stroke:var(--panel2);stroke-width:12}
+.ringfg{fill:none;stroke:var(--c);stroke-width:12;stroke-linecap:round;stroke-dasharray:326.7;transform:rotate(-90deg);transform-box:fill-box;transform-origin:center;animation:ringin 1s ease-out both}
+@keyframes ringin{from{stroke-dashoffset:326.7}}
+.ringtxt{fill:var(--ink);font-family:'Barlow Condensed','Arial Narrow',Impact,sans-serif;font-weight:700;font-size:32px;text-anchor:middle}
+.sstats{display:grid;grid-template-columns:auto auto;gap:1vh 2.4vw;align-items:baseline}
+.sstats span{color:var(--muted);font-size:clamp(15px,3vh,36px)}
+.sstats b{font-family:'Barlow Condensed','Arial Narrow',Impact,sans-serif;font-weight:700;font-size:clamp(30px,8vh,100px);line-height:1}
+.sstats .a{color:var(--good)} .sstats .p{color:var(--warn)}
+
+/* toolbar */
+.toolbar{position:fixed;z-index:5;display:flex;gap:8px;transition:opacity .3s;max-width:calc(100vw - 20px)}
+.toolbar[data-corner="br"]{right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));flex-direction:column-reverse;align-items:flex-end}
+.toolbar[data-corner="bl"]{left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));flex-direction:column-reverse;align-items:flex-start}
+.toolbar[data-corner="tr"]{right:calc(12px + env(safe-area-inset-right,0px));top:calc(12px + env(safe-area-inset-top,0px));flex-direction:column;align-items:flex-end}
+.toolbar[data-corner="tl"]{left:12px;top:calc(12px + env(safe-area-inset-top,0px));flex-direction:column;align-items:flex-start}
+#ctlBtn{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 14px;cursor:pointer;font-size:15px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.panel{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:min(340px,calc(100vw - 24px));max-height:75vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.panel select,.panel button,.panel input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;cursor:pointer;font-size:15px}
+.panel #editBtn{grid-column:1/-1}
+#board.idle .toolbar{opacity:0;pointer-events:none}
+#board.idle{cursor:none}
+
+@media (max-width:800px){
+  #board{padding:12px}
+  .top{flex-direction:column;align-items:flex-start}
+  .tot{text-align:left;flex-wrap:wrap}
+    #board{height:auto;min-height:100%}
+  .grid.stack{overflow:visible}
+  .spot{grid-template-columns:1fr;--ph:min(62vw,40vh);justify-items:center;text-align:center;padding:16px}
+  .sinfo{align-items:center}
+  .srow{justify-content:center}
+  .sname{font-size:clamp(30px,9vw,60px)}
+  .ring{width:36vw}
+}
+@media (prefers-reduced-motion:reduce){
+  .grid.swap .card,.spot.swap,.ringfg{animation:none}
+  .timer{display:none}
+}
+
+.none{color:var(--muted);font-size:clamp(18px,3vh,36px);padding:4vh 2vw}
+`,HTML=`<section id="board">
+  <div class="timer" aria-hidden="true"><i id="timerBar"></i></div>
+  <header class="top"><div class="ttl"><h1 id="bTitle"></h1><p id="bPeriod"></p></div><div class="tot" id="totals"></div></header>
+  <nav class="chips" id="chips" aria-label="Filter by team"></nav>
+  <nav class="chips chips2" id="chips2" hidden></nav>
+  <main class="grid" id="grid"></main>
+  <main class="spotwrap" id="spotWrap" hidden></main>
+  <footer class="foot"><span id="pageInfo"></span><div class="dots" id="dots" aria-hidden="true"></div></footer>
+  <div class="toolbar" id="toolbar" data-corner="br">
+    <button type="button" id="ctlBtn" aria-expanded="false" aria-controls="panel">Controls</button>
+    <div class="panel" id="panel" hidden>
+      <button type="button" id="prevBtn">Previous</button>
+      <button type="button" id="pauseBtn">Pause</button>
+      <button type="button" id="nextBtn">Next</button>
+      <select id="sortSel" aria-label="Sort by"><option value="pct">Sort: achievement %</option><option value="name">Sort: name</option><option value="dept">Sort: team</option><option value="target">Sort: target</option></select>
+      <select id="viewSel" aria-label="View"><option value="grid">View: all agents</option><option value="spot">View: one agent at a time</option></select>
+      <select id="crownSel" aria-label="Crowns"><option value="off">Crowns: off</option><option value="1">Crowns: top 1</option><option value="3">Crowns: top 3</option><option value="100">Crowns: everyone at 100%+</option></select>
+      <select id="perSel" aria-label="Agents per page"><option value="6">6 per page</option><option value="8">8 per page</option><option value="10">10 per page</option><option value="12">12 per page</option><option value="15">15 per page</option><option value="20">20 per page</option></select>
+      <select id="secSel" aria-label="Seconds per page"><option value="5">5 sec</option><option value="8">8 sec</option><option value="10">10 sec</option><option value="15">15 sec</option><option value="20">20 sec</option><option value="30">30 sec</option></select>
+      <select id="ptSel" aria-label="Period type"><option value="m">Period: monthly</option><option value="q">Period: quarterly</option><option value="y">Period: yearly</option></select>
+      <span id="pcell"></span>
+      <button type="button" id="fsBtn">Full screen</button>
+      <button type="button" id="themeBtn">Theme</button>
+      <select id="cornerSel" aria-label="Controls corner"><option value="br">Corner: bottom right</option><option value="bl">Corner: bottom left</option><option value="tr">Corner: top right</option><option value="tl">Corner: top left</option></select>
+      <button type="button" id="exitBtn">Exit board</button>
+    </div>
+  </div>
+</section>`;
+const st={sort:"pct",perPage:10,secs:10,dept:"All",sub:"All",page:0,paused:false,pages:1,view:"spot",crown:"3"};
+try{const d=JSON.parse(localStorage.getItem("tpb:portal")||"null");if(d){st.sort=d.sort||st.sort;st.perPage=d.per||st.perPage;st.secs=d.secs||st.secs;st.view=d.view||st.view;st.crown=d.crown||st.crown}}catch(e){}
+let host=null,root=null,timer=null,idleT=null,members=[],period="",title="",live=false;
+const q=s=>root.querySelector(s);
+const save=()=>{try{localStorage.setItem("tpb:portal",JSON.stringify({sort:st.sort,per:st.perPage,secs:st.secs,view:st.view,crown:st.crown}))}catch(e){}};
+const nf=new Intl.NumberFormat("en-IN"),cf=new Intl.NumberFormat("en-IN",{notation:"compact",maximumFractionDigits:1});
+const fmt=n=>Math.abs(n)>=100000?cf.format(n):nf.format(n),fmtFull=n=>Math.abs(n)>=1e8?cf.format(n):nf.format(n);
+const initials=n=>{const p=String(n).trim().split(/\s+/);return ((p[0]||"")[0]||"").toUpperCase()+((p.length>1?p[p.length-1][0]:"")||"").toUpperCase()};
+const hue=n=>{let h=0;for(let i=0;i<n.length;i++)h=(h*31+n.charCodeAt(i))%360;return h};
+const statusColor=p=>p>=100?"var(--good)":(p>=60?"var(--warn)":"var(--bad)");
+const photoFor=m=>PH[m.id]||"";
+function gather(){const per=tgPer(),rows=tgRows(per.months);members=rows.filter(r=>r.t>0).map(r=>({name:String(r.e.name||"").trim()||"-",dept:rmOf(r.e)||"No reporting manager",sub:"",target:r.t,achieved:r.a,pending:Math.max(r.t-r.a,0),id:r.e.id}));period=per.label;title=bdTitle()}
+const LAYOUT={6:[3,2],8:[4,2],10:[5,2],12:[4,3],15:[5,3],20:[5,4]};
+function layout(){if(st.view==="spot")return{spot:true,stack:false,per:1};if(window.innerWidth<800)return{stack:true,per:Infinity};const l=LAYOUT[st.perPage]||[5,2];return{stack:false,c:l[0],r:l[1],per:l[0]*l[1]}}
+function enriched(){const L=members.map((m,i)=>{const o=Object.assign({},m);o.pct=m.target>0?m.achieved/m.target*100:0;o.idx=i;return o});let r=0,prev=null;L.slice().sort((a,b)=>b.pct-a.pct).forEach((m,i)=>{const k=m.pct.toFixed(2);if(k!==prev){r=i+1;prev=k}m.rank=r});return L}
+function sortList(L){const s=st.sort;return L.slice().sort((a,b)=>{if(s==="name")return a.name.localeCompare(b.name);if(s==="dept")return a.dept.localeCompare(b.dept)||b.pct-a.pct;if(s==="target")return b.target-a.target;return b.pct-a.pct})}
+const CROWN_COL=["","#f6c445","#c9d4dc","#d08a4e"],CROWN_LBL=["","Top performer","Second place","Third place"];
+function crownTier(m){if(m.pct<=0||st.crown==="off")return 0;if(st.crown==="100")return m.pct>=100?1:0;const lim=st.crown==="3"?3:1;return m.rank<=lim?m.rank:0}
+function crownSVG(t){const k=' stroke="rgba(0,0,0,.32)" stroke-width="1.5" stroke-linejoin="round"';return '<svg class="crown" viewBox="0 0 64 44" style="color:'+CROWN_COL[t]+'" role="img" aria-label="'+CROWN_LBL[t]+'"><title>'+CROWN_LBL[t]+'</title><path d="M5 36 9 12l15 12L32 5l8 19 15-12 4 24z" fill="currentColor"'+k+'/><rect x="5" y="37" width="54" height="6" rx="2" fill="currentColor"'+k+'/><circle cx="9" cy="10" r="3.5" fill="currentColor"'+k+'/><circle cx="32" cy="3.8" r="3.5" fill="currentColor"'+k+'/><circle cx="55" cy="10" r="3.5" fill="currentColor"'+k+'/><circle cx="20" cy="40" r="1.7" fill="rgba(0,0,0,.3)"/><circle cx="32" cy="40" r="1.7" fill="rgba(0,0,0,.3)"/><circle cx="44" cy="40" r="1.7" fill="rgba(0,0,0,.3)"/></svg>'}
+function faceHTML(m,t){const ph=photoFor(m);return (t?crownSVG(t):"")+(ph?'<img class="photo" src="'+ph+'" alt="'+esc(m.name)+'">':'<div class="avatar" style="background:hsl('+hue(m.name)+' 38% 34%)" aria-hidden="true">'+esc(initials(m.name))+'</div>')}
+function cardHTML(m){const c=statusColor(m.pct),t=crownTier(m);return '<article class="card'+(t?" crowned":"")+'" data-idx="'+m.idx+'" style="--c:'+c+(t?";--k:"+CROWN_COL[t]:"")+'"><div class="inner"><div class="face">'+faceHTML(m,t)+'</div>'+(st.sort==="pct"?'<span class="rank">#'+m.rank+'</span>':"")+'<div class="head"><div class="who"><div class="name">'+esc(m.name)+'</div><div class="dept">'+esc(m.dept)+'</div></div><div class="pct">'+Math.round(m.pct)+'%</div></div><div class="track"><div class="fill" style="width:'+Math.max(0,Math.min(m.pct,100))+'%"></div></div><div class="stats"><div><b>'+fmt(m.target)+'</b><span>Target</span></div><div class="a"><b>'+fmt(m.achieved)+'</b><span>Achieved</span></div><div class="p"><b>'+fmt(m.pending)+'</b><span>Pending</span></div></div></div></article>'}
+function spotHTML(m,total,deptPct,swap){const c=statusColor(m.pct),t=crownTier(m),C=326.7,off=C*(1-Math.max(0,Math.min(m.pct,100))/100);return '<article class="spot'+(t?" crowned":"")+(swap?" swap":"")+'" style="--c:'+c+(t?";--k:"+CROWN_COL[t]:"")+'"><div class="sface">'+faceHTML(m,t)+'</div><div class="sinfo"><div class="sname">'+esc(m.name)+'</div><div class="sdept">Team: '+esc(m.dept)+'</div><div class="ssub">Rank #'+m.rank+' of '+total+'. '+esc(m.dept)+' team average '+deptPct+'%.'+(t?" "+CROWN_LBL[t]+".":"")+'</div><div class="srow"><svg class="ring" viewBox="0 0 120 120" role="img" aria-label="'+Math.round(m.pct)+' percent of target"><circle class="ringbg" cx="60" cy="60" r="52"/><circle class="ringfg" cx="60" cy="60" r="52" style="stroke-dashoffset:'+off+'"/><text class="ringtxt" x="60" y="71">'+Math.round(m.pct)+'%</text></svg><div class="sstats"><span>Target</span><b>'+fmtFull(m.target)+'</b><span>Achieved</span><b class="a">'+fmtFull(m.achieved)+'</b><span>Pending</span><b class="p">'+fmtFull(m.pending)+'</b></div></div></div></article>'}
+function currentList(){const all=enriched();if(st.dept!=="All"&&!all.some(m=>m.dept===st.dept)){st.dept="All";st.sub="All"}return{all,list:sortList(all.filter(m=>st.dept==="All"||m.dept===st.dept))}}
+function cycleDept(d){const ds=["All"];enriched().forEach(m=>{if(ds.indexOf(m.dept)<0)ds.push(m.dept)});if(ds.length<2)return;const i=ds.indexOf(st.dept);st.dept=ds[(i+d+ds.length)%ds.length];st.page=0;render(true)}
+function render(swap,keep){const L=layout(),cl=currentList(),all=cl.all,list=cl.list;const pages=Math.max(1,Math.ceil(list.length/L.per));st.pages=pages;if(st.page>=pages)st.page=0;
+const slice=Number.isFinite(L.per)?list.slice(st.page*L.per,(st.page+1)*L.per):list;
+q("#bTitle").textContent=title||"Team performance";q("#bPeriod").textContent=period;q("#bPeriod").hidden=!period;
+let T=0,A=0,P=0;list.forEach(m=>{T+=m.target;A+=m.achieved;P+=m.pending});
+q("#totals").innerHTML='<div><b>'+fmtFull(T)+'</b><span>Target</span></div><div><b style="color:var(--good)">'+fmtFull(A)+'</b><span>Achieved</span></div><div><b style="color:var(--warn)">'+fmtFull(P)+'</b><span>Pending</span></div><div><b>'+(T>0?Math.round(A/T*100):0)+'%</b><span>Overall</span></div>';
+const depts=[];all.forEach(m=>{if(depts.indexOf(m.dept)<0)depts.push(m.dept)});
+const dp=d=>{let t=0,a=0;all.forEach(m=>{if(d==="All"||m.dept===d){t+=m.target;a+=m.achieved}});return t>0?Math.round(a/t*100):0};
+const chips=depts.length>1?["All"].concat(depts):[];
+q("#chips").innerHTML=chips.map(d=>'<button type="button" class="chip" data-dept="'+esc(d)+'" aria-pressed="'+(d===st.dept)+'">'+(d==="All"?"All teams":esc(d))+'<b>'+dp(d)+'%</b></button>').join("");q("#chips").hidden=!chips.length;
+const g=q("#grid"),sw=q("#spotWrap");
+if(!list.length){g.hidden=true;sw.hidden=false;sw.innerHTML='<div class="none">No targets entered for '+esc(period)+' yet.</div>';q("#pageInfo").textContent=""}
+else if(L.spot){g.hidden=true;sw.hidden=false;sw.innerHTML=slice.length?spotHTML(slice[0],all.length,dp(slice[0].dept),swap):"";q("#pageInfo").textContent="Agent "+(list.length?st.page+1:0)+" of "+list.length}
+else{sw.hidden=true;g.hidden=false;g.className="grid"+(L.stack?" stack":"")+(swap?" swap":"");if(L.stack){g.style.gridTemplateColumns="";g.style.gridTemplateRows=""}else{g.style.gridTemplateColumns="repeat("+L.c+",minmax(0,1fr))";g.style.gridTemplateRows="repeat("+L.r+",minmax(0,1fr))"}
+let h=slice.map(cardHTML).join("");if(!L.stack)for(let i=slice.length;i<L.per;i++)h+='<div class="card empty"></div>';g.innerHTML=h;
+const start=Number.isFinite(L.per)?st.page*L.per+1:1,end=Number.isFinite(L.per)?start+slice.length-1:list.length;
+q("#pageInfo").textContent="Showing "+(list.length?start:0)+"\u2013"+end+" of "+list.length+" agents"+(pages>1?"  \u00b7  Page "+(st.page+1)+" of "+pages:"")}
+let d="";if(pages>1&&pages<=12)for(let j=0;j<pages;j++)d+='<i class="'+(j===st.page?"on":"")+'"></i>';q("#dots").innerHTML=d;
+q("#sortSel").value=st.sort;q("#perSel").value=String(st.perPage);q("#secSel").value=String(st.secs);q("#viewSel").value=st.view;q("#crownSel").value=st.crown;q("#perSel").disabled=!!L.spot;q("#pauseBtn").textContent=st.paused?"Resume":"Pause";
+q("#ptSel").value=tgt;const per=tgPer();q("#pcell").innerHTML=tgt==="m"?'<input type="month" id="pmSel" value="'+tgMonth()+'" aria-label="Month">':'<select id="ppSel" aria-label="Period">'+perOpts().map(o=>'<option value="'+o[0]+'"'+(o[0]===per.key?" selected":"")+'>'+esc(o[1])+'</option>').join("")+'</select>';
+schedule(keep)}
+function schedule(keep){if(keep&&timer&&!st.paused&&st.pages>1)return;clearTimeout(timer);timer=null;const bar=q("#timerBar");bar.classList.remove("run");bar.style.animationDuration="";if(st.pages>1&&!st.paused){void bar.offsetWidth;bar.style.animationDuration=st.secs+"s";bar.classList.add("run");timer=setTimeout(()=>{timer=null;go(1)},st.secs*1000)}}
+function go(d){st.page=(st.page+d+st.pages)%st.pages;render(true)}
+function update(){if(!live)return;gather();render(false,true)}
+function wake(){const b=q("#board");b.classList.remove("idle");clearTimeout(idleT);idleT=setTimeout(()=>{if(q("#panel").hidden)b.classList.add("idle")},3500)}
+function setPanel(open){q("#panel").hidden=!open;q("#ctlBtn").setAttribute("aria-expanded",String(open));q("#ctlBtn").textContent=open?"Close":"Controls";wake()}
+function setCorner(c){q("#toolbar").setAttribute("data-corner",c);q("#cornerSel").value=c;try{localStorage.setItem("tpb:corner",c)}catch(e){}}
+function toggleFS(){try{if(document.fullscreenElement){document.exitFullscreen()}else if(document.documentElement.requestFullscreen){document.documentElement.requestFullscreen().catch(()=>{alert("Full screen is blocked here. Press F11 in the browser instead.")})}else alert("Press F11 in the browser to go full screen.")}catch(e){alert("Press F11 in the browser to go full screen.")}}
+function bindEvents(){
+q("#ctlBtn").addEventListener("click",()=>setPanel(q("#panel").hidden));
+q("#cornerSel").addEventListener("change",e=>setCorner(e.target.value));
+q("#chips").addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;st.dept=b.getAttribute("data-dept");st.page=0;render(true)});
+q("#prevBtn").addEventListener("click",()=>go(-1));q("#nextBtn").addEventListener("click",()=>go(1));
+q("#pauseBtn").addEventListener("click",()=>{st.paused=!st.paused;q("#pauseBtn").textContent=st.paused?"Resume":"Pause";schedule()});
+q("#sortSel").addEventListener("change",e=>{st.sort=e.target.value;st.page=0;save();render(true)});
+q("#perSel").addEventListener("change",e=>{st.perPage=+e.target.value;st.page=0;save();render(true)});
+q("#secSel").addEventListener("change",e=>{st.secs=+e.target.value;save();schedule()});
+q("#viewSel").addEventListener("change",e=>{st.view=e.target.value;st.page=0;save();render(true)});
+q("#crownSel").addEventListener("change",e=>{st.crown=e.target.value;save();render(false,true)});
+q("#ptSel").addEventListener("change",e=>{tgt=e.target.value;st.page=0;update()});
+q("#pcell").addEventListener("change",e=>{const t=e.target;if(t.id==="pmSel")tgm=t.value||"";else if(t.id==="ppSel"){if(tgt==="q")tgq=t.value;else tgy=t.value}st.page=0;update()});
+q("#grid").addEventListener("click",e=>{const c=e.target.closest(".card[data-idx]");if(!c)return;const idx=+c.getAttribute("data-idx"),list=currentList().list;let pos=0;for(let i=0;i<list.length;i++){if(list[i].idx===idx){pos=i;break}}st.view="spot";st.page=pos;st.paused=true;save();render(true)});
+q("#fsBtn").addEventListener("click",toggleFS);
+q("#themeBtn").addEventListener("click",()=>{const dark=getComputedStyle(host).getPropertyValue("--bg").trim()==="#0c2431",next=dark?"light":"dark";host.setAttribute("data-theme",next);try{localStorage.setItem("tpb:theme",next)}catch(e){}});
+q("#exitBtn").addEventListener("click",()=>bdExit());
+["mousemove","touchstart","click"].forEach(ev=>q("#board").addEventListener(ev,wake,{passive:true}));
+document.addEventListener("keydown",e=>{if(!live)return;const tag=(e.target.tagName||"").toLowerCase();wake();
+if(e.key==="ArrowRight")go(1);else if(e.key==="ArrowLeft")go(-1);
+else if(e.key===" "&&tag!=="button"&&tag!=="select"){e.preventDefault();q("#pauseBtn").click()}
+else if((e.key==="ArrowDown"||e.key==="ArrowUp")&&tag!=="select"){e.preventDefault();cycleDept(e.key==="ArrowDown"?1:-1)}
+else if(e.key==="f"||e.key==="F")toggleFS();
+else if(e.key==="Escape"&&!q("#panel").hidden)setPanel(false);
+else if(e.key==="Escape"&&st.view==="spot"){st.view="grid";st.page=0;save();render(true)}
+else if((e.key==="v"||e.key==="V")&&tag!=="select"){st.view=st.view==="spot"?"grid":"spot";st.page=0;save();render(true)}});
+let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(live)render(false,true)},200)})}
+function show(){const de=document.documentElement;
+if(!host){host=document.createElement("div");host.id="tbhost";root=host.attachShadow({mode:"open"});root.innerHTML="<style>"+CSS+"</style>"+HTML;document.body.appendChild(host);
+if(!document.getElementById("tbfont")){const l=document.createElement("link");l.id="tbfont";l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap";document.head.appendChild(l)}
+bindEvents();try{const th=localStorage.getItem("tpb:theme");if(th)host.setAttribute("data-theme",th);const c=localStorage.getItem("tpb:corner");if(c)setCorner(c)}catch(e){}}
+if(live){update();return}
+live=true;host.style.display="";de.classList.add("bdlive");de.classList.remove("bdwait");gather();render(true);wake()}
+function hide(){live=false;clearTimeout(timer);timer=null;clearTimeout(idleT);if(host)host.style.display="none";document.documentElement.classList.remove("bdlive");try{if(document.fullscreenElement)document.exitFullscreen()}catch(e){}}
+return{show,hide,update,isLive:()=>live}})();
+function bdExit(){boardMode=false;TB.hide();document.documentElement.classList.remove("bdwait");try{history.replaceState(null,"",location.href.split("#")[0])}catch(x){}try{if(window.opener)window.close()}catch(x){}render()}
 function tgV(){const per=tgPer(),rows=tgRows(per.months),w=tgRanked(rows),sm=tgSum(rows),teams=tgTeams(rows),edt=canTgt(),hit=w.filter(r=>r.p>=100).length,inc=rows.reduce((s,r)=>s+r.i,0),miss=rows.filter(r=>!(r.t>0)),mon=per.type==="m";
 let side;
 if(mon)side=`<div class="panel"><h2>Last 6 months</h2>${tgMonths(per.key,6).map(x=>tgNb(mShort(x),tgSum(tgRows([x])))).join("")}</div>`;
@@ -572,6 +824,7 @@ ${w.length?`<div class="two"><div class="panel"><h2>Manager-wise (team achieved 
 <div class="panel"><h2>Performance</h2><div class="sc"><table><thead><tr><th>#</th><th>Name</th><th>Reporting manager</th><th>Target</th><th>Achieved</th><th>Achievement</th>${isTL()?"":"<th>Incentive</th>"}</tr></thead><tbody>${w.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.e.name)}</td><td>${esc(r.e.mgr||"-")}</td><td>${tgFmt(r.t)}</td><td>${tgFmt(r.a)}</td><td><span class="pgt"><u><i class="${tcl(r.p)}" style="width:${Math.min(r.p,100)}%"></i></u>${r.p}%</span></td>${isTL()?"":`<td>${r.i?"\u20B9"+r.i.toLocaleString("en-IN"):"-"}</td>`}</tr>`).join("")}</tbody></table></div></div>`:`<div class="panel"><p class="mute">No targets entered for ${per.label} yet.${edt&&mon?" Use the table below to add them.":edt?" Switch to Monthly to add them.":""}</p></div>`}
 ${miss.length&&w.length?`<div class="panel"><h2>No target entered (${miss.length})</h2><p class="mute">${miss.map(r=>esc(r.e.name)).join(", ")}</p></div>`:""}
 ${edt&&mon?`<div class="panel"><h2>Enter or update figures for ${per.label}</h2><p class="mute">Fill in the target and the achieved figure${isTL()?"":", and the incentive,"} for each employee, then click Save. The same figures appear in each employee's Incentives tab.</p><div class="sc"><table><thead><tr><th>Name</th><th>Reporting manager</th><th>Target</th><th>Achieved</th>${isTL()?"":"<th>Incentive (INR)</th>"}</tr></thead><tbody>${rows.map(r=>{const v=k=>esc(String(r.x&&r.x[k]!=null?r.x[k]:""));return `<tr data-te="${esc(r.e.id)}"><td>${esc(r.e.name)}</td><td class="mute">${esc(r.e.mgr||"")}</td><td><input name="t" type="number" step="any" min="0" value="${v("target")}" style="width:120px"></td><td><input name="a" type="number" step="any" min="0" value="${v("ach")}" style="width:120px"></td>${isTL()?"":`<td><input name="i" type="number" step="any" min="0" value="${v("amt")}" style="width:120px"></td>`}</tr>`}).join("")||`<tr><td colspan="5" class="mute">No employees yet.</td></tr>`}</tbody></table></div><p><button class="btn" id="tsave">Save figures</button></p></div>`:""}
+${edt?boardPanel():""}
 ${fullEdit()?`<div class="panel"><h2>Settings</h2><div class="grid"><label>Unit shown next to numbers (for example ₹, cases or loans)<input id="tunit" value="${esc(tgUnit())}"></label><label>Year runs from<select id="tfy"><option value="4"${fyStart()===4?" selected":""}>April to March (financial year)</option><option value="1"${fyStart()===1?" selected":""}>January to December</option></select></label></div><p><button class="btn sm" id="tunits">Save settings</button></p></div>`:""}`}
 function lbV(){const per=tgPer(),all=tgRows(per.months),rows=tgRanked(all),top=lbn?rows.slice(0,lbn):rows,sel=`<select id="lbn" style="width:auto">${[[5,"Top 5"],[10,"Top 10"],[0,"Everyone"]].map(o=>`<option value="${o[0]}"${o[0]===lbn?" selected":""}>${o[1]}</option>`).join("")}</select>`;
 return `<h1>Leaderboard</h1><p class="sub">See the top performers for a month, a quarter or a year.</p>
@@ -583,7 +836,11 @@ function mkApp(){
 document.title="Meta Fintech - Activity tracker";
 const TYPES=["Used car dealer","New car dealer","Freelancer","Finance executive","Others"],ACTS=["Visit","Call","Collecting documents","Enquiry follow-up"],TEMPS=["Hot","Warm","Cold"],STAGES=["Enquiry","Documentation","Documents collected","Login","Disbursed"];
 const op=a=>a.map(x=>`<option>${x}</option>`).join("");
-$("#main").innerHTML=`<style>#abox label{display:block;margin-top:14px}</style><div class="panel" style="width:100%;max-width:520px;margin:0 auto"><h1>Meta Fintech</h1><p class="tagline">Car loans &middot; Refinance</p><p class="sub">Hello ${esc(me)}. Activity tracker</p><div id="abox"></div></div>`;
+$("#main").innerHTML=`<style>#abox label{display:block;margin-top:14px}
+html.bdwait nav{visibility:hidden!important}
+html.bdlive .app{display:none!important}
+html.bdlive,html.bdlive body{overflow:hidden!important}
+</style><div class="panel" style="width:100%;max-width:520px;margin:0 auto"><h1>Meta Fintech</h1><p class="tagline">Car loans &middot; Refinance</p><p class="sub">Hello ${esc(me)}. Activity tracker</p><div id="abox"></div></div>`;
 const ab=$("#abox"),newId=()=>"w"+Date.now().toString(36)+Math.random().toString(36).slice(2,10);let hist=[],histAll=[],myMt={},working=false,mtab="entry",pre=null,edv=null;
 const tm=t=>new Date(t).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
 async function loadHist(){try{const ss=await getDocs(query(collection(db,"act"),where("uid","==",meP.uid)));histAll=ss.docs.map(d=>d.data()).sort((x,y)=>y.at-x.at);hist=histAll.slice(0,60)}catch(x){hist=[];histAll=[]}try{const s=await getDoc(doc(db,"mt",aYmd(new Date()).slice(0,7)));myMt=s.exists()?s.data():{}}catch(x){}}
@@ -659,9 +916,13 @@ ph=null;await loadHist();working=false;paint("Saved. Time, location and photo re
 }catch(x){working=false;b.disabled=false;b.textContent="Check in and save";
 showE(x&&x.code==="storage/unauthorized"?"Photo not accepted. Please tell the admin the Storage rules are not published yet.":x&&x.code==="permission-denied"?"Your account is not allowed to save. Please tell HR.":"Could not save. Check your internet and try again.")}}}
 loadHist().then(()=>paint())}
-function render(){$(".app").classList.toggle("out",!me);if(!me){$("#main").innerHTML=loginV();bind();return}$("#out").textContent="Sign out ("+me+")";
+function render(){$(".app").classList.toggle("out",!me);if(!me){document.documentElement.classList.remove("bdwait");$("#main").innerHTML=loginV();bind();return}$("#out").textContent="Sign out ("+me+")";
+if(boardMode&&meP&&!canTgt()){boardMode=false;document.documentElement.classList.remove("bdwait")}
+if(boardMode&&!loaded)document.documentElement.classList.add("bdwait");
 if(loadErr){$("#main").innerHTML=errV();bind();return}
 if(!loaded){$("#main").innerHTML='<p class="mute">Loading data...</p>';return}
+if(boardMode&&canTgt()){TB.show();return}
+if(TB.isLive())TB.hide();
 if(meP&&meP.role==="Marketing"){$$("nav button").forEach(x=>x.style.display=x.id==="out"?"":"none");if(!$("#abox"))mkApp();return}
 if(isTL()&&v!=="tg"&&v!=="lb"&&!(v==="act"&&!isOps()))v="tg";
 const HRHIDE=["tg","lb","act","users"],hideHR=!!meP&&meP.role==="HR";if(hideHR&&HRHIDE.includes(v))v="dash";
@@ -769,6 +1030,10 @@ $$("[data-pw]").forEach(b=>b.onclick=async()=>{try{await sendPasswordResetEmail(
 if(g("#tm"))g("#tm").onchange=ev=>{tgm=ev.target.value||"";render()};
 if(g("#tp"))g("#tp").onchange=ev=>{if(tgt==="q")tgq=ev.target.value;else tgy=ev.target.value;render()};
 $$("[data-pt]").forEach(b=>b.onclick=()=>{tgt=b.dataset.pt;render()});
+if(g("#bopen"))g("#bopen").onclick=()=>{window.open(location.href.split("#")[0]+"#board","_blank")};
+if(g("#btitle"))g("#btitle").onchange=ev=>{try{localStorage.setItem("bdTitle",ev.target.value.trim())}catch(x){}toast("Board title saved")};
+$$("[data-ph]").forEach(i=>i.onchange=async()=>{const f=i.files&&i.files[0];if(!f)return;try{const d=await phResize(f);await setDoc(doc(db,"photos",i.dataset.ph),{d,at:Date.now()});toast("Photo saved")}catch(x){console.error(x);toast(x&&x.code==="permission-denied"?"Could not save the photo. Publish the updated Firestore rules first.":"Could not save the photo")}});
+$$("[data-phx]").forEach(b=>b.onclick=async()=>{try{await deleteDoc(doc(db,"photos",b.dataset.phx));toast("Photo removed")}catch(x){toast("Could not remove the photo")}});
 if(g("#rmf"))g("#rmf").onchange=ev=>{rmf=ev.target.value;render()}; if(g("#lbn"))g("#lbn").onchange=ev=>{lbn=parseInt(ev.target.value)||0;render()};
 if(g("#tunits"))g("#tunits").onclick=()=>{if(!fullEdit())return;S.cfg.tunit=g("#tunit").value.trim();S.cfg.fy=g("#tfy").value;save();toast("Settings saved");render()};
 if(g("#tsave"))g("#tsave").onclick=()=>{if(!canTgt())return;const m=tgMonth();let n=0;$$("[data-te]").forEach(tr=>{const e=emp(tr.dataset.te);if(!e)return;const val=k=>{const el=tr.querySelector("[name="+k+"]");return el?(el.value||"").trim():""},t=val("t"),a=val("a"),i=isTL()?null:val("i");let x=tgEnt(e,m);if(i===null){if(!x){if(!t&&!a)return;e.inc=e.inc||[];e.inc.push({month:m,target:t,ach:a,amt:""});n++;return}if(String(x.target??"")!==t||String(x.ach??"")!==a){x.target=t;x.ach=a;n++}return}if(!x){if(!t&&!a&&!i)return;e.inc=e.inc||[];e.inc.push({month:m,target:t,ach:a,amt:i});n++;return}if(String(x.target??"")!==t||String(x.ach??"")!==a||String(x.amt??"")!==i){x.target=t;x.ach=a;x.amt=i;n++}});if(!n)return toast("Nothing changed");log("Updated targets for "+tgLabel(m)+" ("+n+" employees)");save();toast("Saved for "+n+" employees");render()};
