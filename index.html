@@ -1011,8 +1011,8 @@ if(boardMode&&canTgt()){TB.show();return}
 if(TB.isLive())TB.hide();
 if(meP&&meP.role==="Marketing"){$$("nav button").forEach(x=>x.style.display=x.id==="out"?"":"none");if(!$("#abox"))mkApp();return}
 if(isTL()&&v!=="tg"&&v!=="lb"&&v!=="cu"&&!(v==="act"&&!isOps()))v="tg";
-const HRHIDE=["tg","lb","act","users"],hideHR=!!meP&&meP.role==="HR";if(hideHR&&HRHIDE.includes(v))v="dash";
-$$("nav button").forEach(b=>{b.setAttribute("aria-current",b.dataset.v===(v==="prof"?"list":v));b.style.display=(isTL()&&b.id!=="out"&&b.dataset.v!=="tg"&&b.dataset.v!=="lb"&&b.dataset.v!=="cu"&&b.dataset.v!=="act")||(b.dataset.v==="act"&&!fullEdit()&&!isTL())||(hideHR&&HRHIDE.includes(b.dataset.v))||(isOps()&&b.dataset.v==="act")?"none":""});
+const HRHIDE=["tg","lb","act","users"],hideHR=!!meP&&meP.role==="HR";if(hideHR&&HRHIDE.includes(v))v="dash";const isAd=!!meP&&meP.role==="Admin";if(!isAd&&v==="rep")v="dash";
+$$("nav button").forEach(b=>{b.setAttribute("aria-current",b.dataset.v===(v==="prof"?"list":v));b.style.display=(isTL()&&b.id!=="out"&&b.dataset.v!=="tg"&&b.dataset.v!=="lb"&&b.dataset.v!=="cu"&&b.dataset.v!=="act")||(b.dataset.v==="act"&&!fullEdit()&&!isTL())||(hideHR&&HRHIDE.includes(b.dataset.v))||(b.dataset.v==="rep"&&!isAd)||(isOps()&&b.dataset.v==="act")?"none":""});
 $("#main").innerHTML=({dash,list,prof,rep,log:logv,users:usersV,lv:lvV,hol:holV,cu:cuV,tg:tgV,lb:lbV,act:actV})[v]();bind()}
 function bind(){cuBind();
 $$("[data-open]").forEach(r=>r.onclick=()=>{cur=r.dataset.open;v="prof";tab="details";editing=false;render()});
