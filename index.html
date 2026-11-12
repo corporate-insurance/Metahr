@@ -132,7 +132,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--ac);box-shadow:0 0 0 
 <script type="module">
 const FB="https://www.gstatic.com/firebasejs/13.2.0/";
 let fbm;try{const m=await Promise.all([import(FB+"firebase-app.js"),import(FB+"firebase-auth.js"),import(FB+"firebase-firestore.js"),import(FB+"firebase-storage.js")]);fbm=Object.assign({},...m)}catch(x){document.body.innerHTML='<p style="padding:24px;font:16px sans-serif">Could not load the portal. Check your internet connection and refresh the page.</p>';throw x}
-const {initializeApp,deleteApp,getAuth,setPersistence,browserSessionPersistence,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,sendPasswordResetEmail,deleteUser,getFirestore,getDocs,where,getStorage,ref,uploadBytes,getDownloadURL,deleteObject,collection,doc,setDoc,deleteDoc,addDoc,getDoc,onSnapshot,writeBatch,query,orderBy,limit,serverTimestamp}=fbm;
+const {initializeApp,deleteApp,getAuth,setPersistence,browserSessionPersistence,browserLocalPersistence,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,sendPasswordResetEmail,deleteUser,getFirestore,getDocs,where,getStorage,ref,uploadBytes,getDownloadURL,deleteObject,collection,doc,setDoc,deleteDoc,addDoc,getDoc,onSnapshot,writeBatch,query,orderBy,limit,serverTimestamp}=fbm;
 const firebaseConfig={apiKey:"AIzaSyASuZMqSs39jrwlDFpfmNUP2g8PkHaWX4s",authDomain:"meta-eeb73.firebaseapp.com",projectId:"meta-eeb73",storageBucket:"meta-eeb73.firebasestorage.app",messagingSenderId:"1066520166605",appId:"1:1066520166605:web:bda895fc57e6986715e984"};
 const fbApp=initializeApp(firebaseConfig),auth=getAuth(fbApp),db=getFirestore(fbApp),storage=getStorage(fbApp);
 const EQ=new URLSearchParams(location.search);
@@ -753,7 +753,7 @@ function render(swap,keep){const L=layout(),cl=currentList(),all=cl.all,list=cl.
 const slice=Number.isFinite(L.per)?list.slice(st.page*L.per,(st.page+1)*L.per):list;
 q("#bTitle").textContent=title||"Team performance";q("#bPeriod").textContent=period;q("#bPeriod").hidden=!period;
 let T=0,A=0,P=0;list.forEach(m=>{T+=m.target;A+=m.achieved;P+=m.pending});
-q("#totals").innerHTML='<div><b>'+fmtFull(T)+'</b><span>Target</span></div><div><b style="color:var(--good)">'+fmtFull(A)+'</b><span>Achieved</span></div><div><b style="color:var(--warn)">'+fmtFull(P)+'</b><span>Pending</span></div><div><b>'+(T>0?Math.round(A/T*100):0)+'%</b><span>Overall</span></div>';
+q("#totals").innerHTML='<div><b>'+(T>0?Math.round(A/T*100):0)+'%</b><span>Overall</span></div>';
 const depts=[];all.forEach(m=>{if(depts.indexOf(m.dept)<0)depts.push(m.dept)});
 const dp=d=>{let t=0,a=0;all.forEach(m=>{if(d==="All"||m.dept===d){t+=m.target;a+=m.achieved}});return t>0?Math.round(a/t*100):0};
 const chips=depts.length>1?["All"].concat(depts):[];
@@ -811,7 +811,7 @@ if(live){update();return}
 live=true;host.style.display="";de.classList.add("bdlive");de.classList.remove("bdwait");gather();render(true);wake()}
 function hide(){live=false;clearTimeout(timer);timer=null;clearTimeout(idleT);if(host)host.style.display="none";document.documentElement.classList.remove("bdlive");try{if(document.fullscreenElement)document.exitFullscreen()}catch(e){}}
 return{show,hide,update,isLive:()=>live}})();
-function bdExit(){boardMode=false;TB.hide();document.documentElement.classList.remove("bdwait");try{history.replaceState(null,"",location.href.split("#")[0])}catch(x){}try{if(window.opener)window.close()}catch(x){}render()}
+function bdExit(){boardMode=false;TB.hide();try{setPersistence(auth,browserSessionPersistence)}catch(x){}document.documentElement.classList.remove("bdwait");try{history.replaceState(null,"",location.href.split("#")[0])}catch(x){}try{if(window.opener)window.close()}catch(x){}render()}
 function tgV(){const per=tgPer(),rows=tgRows(per.months),w=tgRanked(rows),sm=tgSum(rows),teams=tgTeams(rows),edt=canTgt(),hit=w.filter(r=>r.p>=100).length,inc=rows.reduce((s,r)=>s+r.i,0),miss=rows.filter(r=>!(r.t>0)),mon=per.type==="m";
 let side;
 if(mon)side=`<div class="panel"><h2>Last 6 months</h2>${tgMonths(per.key,6).map(x=>tgNb(mShort(x),tgSum(tgRows([x])))).join("")}</div>`;
@@ -917,7 +917,7 @@ ph=null;await loadHist();working=false;paint("Saved. Time, location and photo re
 showE(x&&x.code==="storage/unauthorized"?"Photo not accepted. Please tell the admin the Storage rules are not published yet.":x&&x.code==="permission-denied"?"Your account is not allowed to save. Please tell HR.":"Could not save. Check your internet and try again.")}}}
 loadHist().then(()=>paint())}
 function render(){$(".app").classList.toggle("out",!me);if(!me){document.documentElement.classList.remove("bdwait");$("#main").innerHTML=loginV();bind();return}$("#out").textContent="Sign out ("+me+")";
-if(boardMode&&meP&&!canTgt()){boardMode=false;document.documentElement.classList.remove("bdwait")}
+if(boardMode&&meP&&!canTgt()){boardMode=false;document.documentElement.classList.remove("bdwait");try{setPersistence(auth,browserSessionPersistence)}catch(x){}}
 if(boardMode&&!loaded)document.documentElement.classList.add("bdwait");
 if(loadErr){$("#main").innerHTML=errV();bind();return}
 if(!loaded){$("#main").innerHTML='<p class="mute">Loading data...</p>';return}
@@ -1060,7 +1060,7 @@ $$("[data-rc]").forEach(sel=>sel.onchange=async()=>{const u=S.users.find(x=>x.ui
 $$("[data-ru]").forEach(b=>b.onclick=async()=>{const u=S.users.find(x=>x.uid===b.dataset.ru);if(!u)return;if(confirm("Remove "+u.name+"? They will no longer be able to open the portal.")){try{await deleteDoc(doc(db,"users",u.uid));log("Removed user "+u.email);toast("User removed")}catch(x){toast(authMsg(x))}}});
 }
 $$("nav button").forEach(b=>b.onclick=async()=>{v=b.dataset.v;nh="";if(v==="out"){v="dash";try{await log("Signed out")}catch(x){}try{await signOut(auth)}catch(x){}return}render()});
-try{await setPersistence(auth,browserSessionPersistence)}catch(x){}
+try{await setPersistence(auth,boardMode?browserLocalPersistence:browserSessionPersistence)}catch(x){}
 onAuthStateChanged(auth,async u=>{if(busy)return;
 if(!u){stopListeners();meP=null;me=null;setup=false;authReady=true;render();return}
 try{const sn=await getDoc(doc(db,"users",u.uid));
