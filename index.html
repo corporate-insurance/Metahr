@@ -962,12 +962,14 @@ const CF=[
 {k:"offph",l:"Office (phone)",t:"tel",h:"Office",a:["office","officephone","officeno","officenumber"]},
 {k:"email",l:"Email",t:"email",h:"Email",a:["email","emailid","mailid","customeremail","mail"]},
 {k:"resad",l:"Residence (address)",t:"text",h:"Residence",a:["residence","residenceaddress","residentialaddress"]},
+{k:"pin",l:"Pincode",t:"pin",h:"Pincode",a:["pincode","pin","zip","zipcode","postalcode"]},
 {k:"offad",l:"Office (address)",t:"text",h:"Office",a:["office","officeaddress"]},
 {k:"resloc",l:"Residence Location",t:"text",h:"Residence Location",a:["residencelocation","location"]},
+{k:"state",l:"State",t:"text",h:"State",a:["state"]},
 {k:"blr",l:"Bangalore",t:"blr",h:"Bangalore",a:["bangalore","bengaluru"]},
 {k:"city",l:"City (if not Bangalore)",t:"text",h:"City",a:["city","othercity","location2"]},
 {k:"fin",l:"Bank name",t:"fin",h:"Bank name",a:["bankname","bank","bankorfinancer","financer","financier","lender"]}],
-CG=[["Team",["tc","fos","tl"]],["Enquiry and product",["sl","etype","kind","prod"]],["Vehicle",["veh","car","year","vno","insco","insexp","apna"]],["Loan",["loan","tenor","emi","sur","los","status","login","disb"]],["Customer",["ctype","company","name","dob","mobile","resph","offph","email","resad","offad","resloc","blr","fin"]]];
+CG=[["Team",["tc","fos","tl"]],["Enquiry and product",["sl","etype","kind","prod"]],["Vehicle",["veh","car","year","vno","insco","insexp","apna"]],["Loan",["loan","tenor","emi","sur","los","status","login","disb"]],["Customer",["ctype","company","name","dob","mobile","resph","offph","email","resad","pin","offad","resloc","state","blr","fin"]]];
 const cuOK=()=>fullEdit()||(!!meP&&["Accounts","Team leader","Operations"].includes(meP.role));
 const cuGet=id=>CU.find(x=>x.id===id)||CUS.find(x=>x.id===id);
 const cuAll=()=>CUm?CUS:CU;
@@ -992,6 +994,7 @@ const kr=r.kind.toLowerCase(),pr=r.prod.toLowerCase();const rf=/refin/.test(kr)|
 const sr=r.status.toLowerCase();r.status=/disburs/.test(sr)?"Disbursed":/login/.test(sr)?"Login":/approv|sanction/.test(sr)?"Approved":/reject|declin/.test(sr)?"Rejected":/cancel/.test(sr)?"Cancelled":/pend/.test(sr)?"Pending":r.status;
 r.apna=/^non/i.test(r.apna)?"Non Apna":/apna/i.test(r.apna)?"Apna":r.apna;
 const fm=FINALL.find(x=>cuNorm(x)===cuNorm(r.fin));if(fm)r.fin=fm;
+{const pr0=String(r.pin||"").trim(),pn=pr0.replace(/\D/g,"");if(pr0&&pn.length!==6)w=true;r.pin=pn.slice(0,6)}
 {const ym=String(r.year||"").match(/(19|20)\d{2}/);r.year=ym?ym[0]:""}
 r.blr=/^y/i.test(r.blr)?"Yes":/^n/i.test(r.blr)?"No":r.blr;if(r.city&&!r.blr)r.blr="No";if(r.blr==="Yes")r.city="";
 if(!r.name)r.name=r.company;r.nl=r.name.toLowerCase();if(!r.tl){const m=cuMgrOf(r.tc)||cuMgrOf(r.fos);if(m)r.tl=m}return {r,w}}
@@ -1022,6 +1025,7 @@ if(i.stage==="done")return `<p class="tag" style="display:block;padding:8px 12px
 return `<p class="tag b" style="display:block;padding:8px 12px">${esc(i.msg||"Something went wrong.")}</p>`}
 function cuImpPaint(){const e=$("#cuimp");if(!e)return;e.innerHTML=cuImpHtml();cuImpBind()}
 
+let CUpin=0,CUpt=0;
 const UCP=["Used car loan","Refinance","Top-up loan","Balance transfer","Loan against car"];
 const MODELS={"Maruti Suzuki":["Alto 800","Alto K10","S-Presso","Celerio","Wagon R","Swift","Dzire","Ignis","Baleno","Ertiga","XL6","Brezza","Fronx","Grand Vitara","Jimny","Ciaz","Eeco","Invicto","Eritga Tour","Omni","Zen","Estilo","A-Star","Ritz","SX4","Swift Dzire"],
 "Hyundai":["Santro","Eon","i10","Grand i10","Grand i10 Nios","i20","i20 N Line","Aura","Xcent","Verna","Elantra","Exter","Venue","Venue N Line","Creta","Creta N Line","Alcazar","Tucson","Kona Electric","Ioniq 5","Accent"],
@@ -1064,9 +1068,18 @@ return `<label>Model<select name="carSel" data-pk="car"><option value="">Select<
 function cuFormVal(f,k){const s=f.elements[k+"Sel"];if(!s)return "";return s.value==="Other"?String((f.elements[k+"Other"]||{}).value||"").trim():s.value}
 function cuModelRefresh(){const f=$("#cuf"),w=$("#carW");if(!f||!w)return;w.innerHTML=cuModelInner(cuFormVal(f,"veh"),cuFormVal(f,"car"));cuModelBind()}
 function cuModelBind(){const s=document.querySelector('#cuf [name="carSel"]');if(s)s.onchange=()=>{const o=$("#carOw");if(o)o.style.display=s.value==="Other"?"":"none"}}
+function cuPinLook(){const f=$("#cuf");if(!f||!f.elements.pin)return;const p=f.elements.pin,m=$("#pinMsg"),v=p.value.replace(/\D/g,"").slice(0,6);p.value=v;if(v.length!==6){if(m)m.textContent="";return}
+if(m)m.textContent="Looking up...";const tk=++CUpin;
+fetch("https://api.postalpincode.in/pincode/"+v).then(r=>r.json()).then(j=>{if(tk!==CUpin)return;const o=j&&j[0]&&j[0].Status==="Success"&&j[0].PostOffice&&j[0].PostOffice[0];
+if(!o){if(m)m.textContent="Pincode not found. Please type the location and state.";return}
+const dist=o.District||"",loc=[o.Name,dist].filter(Boolean).join(", ");
+if(f.elements.resloc)f.elements.resloc.value=loc;if(f.elements.state)f.elements.state.value=o.State||"";
+const bl=f.elements.blr,isB=/bengaluru|bangalore/i.test(dist);if(bl){bl.value=isB?"Yes":"No";bl.dispatchEvent(new Event("change"));if(!isB&&f.elements.city)f.elements.city.value=dist}
+if(m)m.textContent="Found: "+loc+", "+(o.State||"")}).catch(()=>{if(tk===CUpin&&m)m.textContent="Could not look up the pincode. Check your internet, or type the location and state."})}
 function cuTlSync(src){const f=$("#cuf"),t=f&&f.elements.tl;if(!t)return;const a=cuFormVal(f,src),b=cuFormVal(f,src==="tc"?"fos":"tc");t.value=cuMgrOf(a)||cuMgrOf(b)||""}
 function cuFld(f,val){const L=esc(f.l);if(f.t==="year"){const y0=new Date().getFullYear()+1,ys=[];for(let y=y0;y>=1995;y--)ys.push(String(y));const sv=val?String(val):"";if(sv&&!ys.includes(sv))ys.push(sv);return `<div><label>${L}<select name="year"><option value="">Select</option>${ys.map(y=>`<option${y===sv?" selected":""}>${y}</option>`).join("")}</select></label></div>`}
 if(f.t==="blr"){let sv=val?String(val):"",city=CURC.city||"";if(sv&&sv!=="Yes"&&sv!=="No"){city=city||sv;sv="No"}return `<div><label>${L}<select name="blr"><option value="">Select</option><option${sv==="Yes"?" selected":""}>Yes</option><option${sv==="No"?" selected":""}>No</option></select></label><div id="cityW" style="display:${sv==="No"?"":"none"};margin-top:6px"><input name="city" placeholder="Type the city / location" value="${esc(city)}"></div></div>`}
+if(f.t==="pin")return `<div><label>${L}<input name="pin" inputmode="numeric" maxlength="6" placeholder="6-digit pincode" value="${esc(val||"")}"></label><div id="pinMsg" class="mute" style="font-size:12px;margin-top:4px"></div></div>`;
 if(f.t==="slauto")return `<div><label>${L}<input name="sl" value="${esc(val||"")}" placeholder="Auto (next number)" readonly></label></div>`;
 if(f.t==="tlauto")return `<div><label>${L}<input name="tl" value="${esc(val||"")}" placeholder="Auto from Telecaller / FOS" readonly></label></div>`;
 if(f.t==="prod")return `<div id="prodW">${cuProdInner(CURC.kind,val)}</div>`;
@@ -1101,7 +1114,7 @@ CUbusy=false;if(CUm)cuFind();else refresh()}
 async function cuUndo(){if(!fullEdit()||!CUlast)return;if(!confirm("Delete every customer from the last import?"))return;CUbusy=true;let n=0;try{for(;;){const ss=await getDocs(query(collection(db,"cust"),where("imp","==",CUlast),limit(400)));if(!ss.size)break;const b=writeBatch(db);ss.forEach(d=>b.delete(d.ref));await b.commit();n+=ss.size;toast("Removed "+n+"...")}log("Undid an import of "+n+" customer records");CUlast="";CUimp=null;toast(n+" customers removed")}catch(x){console.error(x);toast("Could not finish removing. Try again.")}CUbusy=false;cuCount();if(CUm)cuFind();else refresh()}
 const cuOut=(c,f)=>f.t==="date"?(c[f.k]?fmtD(c[f.k]):""):(f.t==="number"&&!c[f.k]?"":String(c[f.k]??"")),cuQ=x=>'"'+String(x).replace(/"/g,'""')+'"';
 const cuCsv=rows=>"\ufeff"+[CF.map(f=>cuQ(f.h)).join(",")].concat(rows.map(c=>CF.map(f=>cuQ(cuOut(c,f))).join(","))).join("\n");
-const CUEX=[["1","Ravi Kumar","HARSHITHA","KIRAN KUMAR N","Walk-in","UC","Used car loan","Maruti","Swift VXI","2019","KA01AB1234","ICICI Lombard","31-03-2027","Apna","450000","48","11250","Yes","15-12-2026","Disbursed","05-12-2026","14-08-1985","LOS1001","Individual","","Suresh Rao","9876543210","08012345678","","suresh@example.com","12 MG Road","","Indiranagar","Yes","","HDFC Bank"],["2","Ravi Kumar","HARSHITHA","","Referral","NC","New car loan","Hyundai","Creta SX","2024","","","","Non Apna","1200000","60","24500","No","","Login","10-12-2026","","","Company","ABC Traders","Mahesh","9123456780","","","mahesh@example.com","","44 Brigade Road","Whitefield","Yes","","ICICI Bank"]];
+const CUEX=[["1","Ravi Kumar","HARSHITHA","KIRAN KUMAR N","Walk-in","UC","Used car loan","Maruti","Swift VXI","2019","KA01AB1234","ICICI Lombard","31-03-2027","Apna","450000","48","11250","Yes","15-12-2026","Disbursed","05-12-2026","14-08-1985","LOS1001","Individual","","Suresh Rao","9876543210","08012345678","","suresh@example.com","12 MG Road","560038","","Indiranagar","Karnataka","Yes","","HDFC Bank"],["2","Ravi Kumar","HARSHITHA","","Referral","NC","New car loan","Hyundai","Creta SX","2024","","","","Non Apna","1200000","60","24500","No","","Login","10-12-2026","","","Company","ABC Traders","Mahesh","9123456780","","","mahesh@example.com","","560066","44 Brigade Road","Whitefield","Karnataka","Yes","","ICICI Bank"]];
 function cuBind(){if(v!=="cu")return;cuRowBind();cuImpBind();
 const qi=$("#cuq");if(qi)qi.oninput=()=>{CUq=qi.value;clearTimeout(CUtm);CUtm=setTimeout(cuFind,350)};
 const ti=$("#cut");if(ti)ti.onchange=()=>{CUt=ti.value;cuFind()};
@@ -1109,7 +1122,8 @@ const si=$("#cust");if(si)si.onchange=()=>{CUst=si.value;cuFind()};
 $$("[data-pk]").forEach(sl=>sl.onchange=()=>{const o=$("#"+sl.dataset.pk+"Ow");if(o)o.style.display=sl.value==="Other"?"":"none"});
 const cf=$("#cuf");if(cf){const kd=cf.elements.kind;if(kd)kd.addEventListener("change",()=>{const w=$("#prodW");if(w)w.innerHTML=cuProdInner(kd.value,"")});
 ["vehSel","vehOther"].forEach(n=>{const el=cf.elements[n];if(el)el.addEventListener(n==="vehSel"?"change":"input",cuModelRefresh)});
-[["tcSel","tc","change"],["tcOther","tc","input"],["fosSel","fos","change"],["fosOther","fos","input"]].forEach(a=>{const el=cf.elements[a[0]];if(el)el.addEventListener(a[2],()=>cuTlSync(a[1]))});const bl=cf.elements.blr;if(bl)bl.addEventListener("change",()=>{const w=$("#cityW");if(w){w.style.display=bl.value==="No"?"":"none";if(bl.value!=="No"&&cf.elements.city)cf.elements.city.value=""}});cuModelBind()}
+[["tcSel","tc","change"],["tcOther","tc","input"],["fosSel","fos","change"],["fosOther","fos","input"]].forEach(a=>{const el=cf.elements[a[0]];if(el)el.addEventListener(a[2],()=>cuTlSync(a[1]))});const pn=cf.elements.pin;if(pn)pn.addEventListener("input",()=>{clearTimeout(CUpt);CUpt=setTimeout(cuPinLook,300)});
+const bl=cf.elements.blr;if(bl)bl.addEventListener("change",()=>{const w=$("#cityW");if(w){w.style.display=bl.value==="No"?"":"none";if(bl.value!=="No"&&cf.elements.city)cf.elements.city.value=""}});cuModelBind()}
 const cc=$("#cucancel");if(cc)cc.onclick=()=>{CUe=null;render()};
 const cs=$("#cucsv");if(cs)cs.onclick=()=>dl("customers.csv",cuCsv(cuAll()),"text/csv");
 const ca=$("#cuall");if(ca)ca.onclick=async()=>{ca.disabled=true;toast("Preparing the file...");try{let all=[],last=null;for(;;){const ss=await getDocs(last?query(collection(db,"cust"),orderBy("at","desc"),fbm.startAfter(last),limit(2000)):query(collection(db,"cust"),orderBy("at","desc"),limit(2000)));if(!ss.size)break;ss.forEach(d=>all.push(d.data()));last=ss.docs[ss.docs.length-1];if(ss.size<2000)break}dl("customers-all.csv",cuCsv(all),"text/csv");toast(all.length.toLocaleString("en-IN")+" customers downloaded")}catch(x){toast("Could not download. Check your internet.")}ca.disabled=false};
@@ -1120,6 +1134,7 @@ CUimp=cuBuild(grid,f.name)}catch(x){console.error(x);CUimp={stage:"err",msg:/\.(
 const f=$("#cuf");if(f)f.onsubmit=async ev=>{ev.preventDefault();if(!cuOK())return;const fd=new FormData(f),fin=fd.get("finSel")==="Other"?String(fd.get("finOther")||"").trim():String(fd.get("finSel")||"");
 if(fd.get("finSel")==="Other"&&!fin)return toast("Please type the bank or financer name");
 const pk=new Set(CF.filter(x=>x.p||x.t==="fin"||x.t==="model").map(x=>x.k)),gv=k=>{if(!pk.has(k))return fd.get(k);const sl=String(fd.get(k+"Sel")||"");return sl==="Other"?String(fd.get(k+"Other")||"").trim():sl};const {r}=cuRec(k=>k==="fin"?fin:gv(k));if(!r.name)return toast("Please enter the contact person name or company name");
+if(r.pin&&r.pin.length!==6)return toast("Pincode should be 6 digits");
 if(r.blr==="No"&&!r.city)return toast("Please type the city, since Bangalore is No");
 if(r.mobile&&!/^[6-9]\d{9}$/.test(r.mobile))return toast("Contact number should be 10 digits");
 if(r.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email))return toast("Please check the email address");
