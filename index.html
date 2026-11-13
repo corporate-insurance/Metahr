@@ -579,8 +579,8 @@ button,select,input{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--warn);outline-offset:2px}
 /* ---------- Board ---------- */
 #board{height:100%;display:flex;flex-direction:column;padding:2.2vh 2vw 1.6vh;position:relative}
-.timer{position:absolute;left:0;right:0;top:0;height:4px}
-.timer i{display:block;height:100%;width:0;background:var(--good)}
+.timer{position:absolute;left:0;right:0;top:0;height:4px;overflow:visible}
+.timer i{display:block;height:100%;width:0;background:var(--good);position:relative}
 .timer i.run{animation:fillbar linear forwards}
 @keyframes fillbar{from{width:0}to{width:100%}}
 .top{display:flex;justify-content:space-between;align-items:flex-end;gap:2vw;flex:none}
@@ -600,7 +600,7 @@ button,select,input{font:inherit;color:inherit}
 .grid{flex:1;min-height:0;display:grid;gap:1.4vh 1vw}
 .grid.stack{grid-template-columns:1fr;grid-auto-rows:240px;overflow:auto}
 .grid.swap .card{animation:cardin .45s ease both}
-@keyframes cardin{from{opacity:0}to{opacity:1}}
+@keyframes cardin{from{opacity:0;transform:translateY(3vh) scale(.94)}to{opacity:1;transform:none}}
 .foot{flex:none;display:flex;justify-content:space-between;align-items:center;margin-top:1.2vh;color:var(--muted);font-size:clamp(12px,1.9vh,20px)}
 .dots{display:flex;gap:6px}
 .dots i{width:10px;height:10px;border-radius:99px;background:var(--panel2)}
@@ -626,8 +626,9 @@ button,select,input{font:inherit;color:inherit}
 .name{font-family:'Barlow Condensed','Arial Narrow',Impact,sans-serif;font-weight:700;font-size:calc(var(--cu)*7.4);line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dept{color:var(--muted);font-size:calc(var(--cu)*4.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pct{font-family:'Barlow Condensed','Arial Narrow',Impact,sans-serif;font-weight:700;font-size:calc(var(--cu)*10.5);line-height:1;color:var(--c)}
-.track{grid-area:bar;height:calc(var(--cu)*2.4);border-radius:99px;background:var(--panel2);overflow:hidden}
-.fill{height:100%;border-radius:inherit;background:var(--c)}
+.road{grid-area:bar;position:relative}
+.track{height:calc(var(--cu)*2.4);border-radius:99px;background:var(--panel2);overflow:hidden}
+.fill{height:100%;border-radius:inherit;background:var(--c);animation:grow 1.6s cubic-bezier(.25,.8,.3,1) both}
 .stats{grid-area:stats;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:calc(var(--cu)*2)}
 .stats b{display:block;font-family:'Barlow Condensed','Arial Narrow',Impact,sans-serif;font-weight:700;font-size:calc(var(--cu)*8.8);line-height:1;white-space:nowrap}
 .stats span{color:var(--muted);font-size:calc(var(--cu)*4.2)}
@@ -645,7 +646,7 @@ button,select,input{font:inherit;color:inherit}
 
 /* spotlight */
 .spotwrap{flex:1;min-height:0;display:flex}
-.spot{flex:1;min-height:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4vw;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:2.5vh 3vw;--ph:min(54vh,34vw);overflow:hidden}
+.spot{position:relative;flex:1;min-height:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4vw;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:2.5vh 3vw;--ph:min(54vh,34vw);overflow:hidden}
 .spot.crowned{border-color:var(--k);border-width:2px}
 .spot.swap{animation:cardin .45s ease both}
 .sface{display:flex;flex-direction:column;align-items:center;gap:1.2vh}
@@ -697,6 +698,66 @@ button,select,input{font:inherit;color:inherit}
   .timer{display:none}
 }
 
+/* ---------- Animations: car loan theme ---------- */
+.grid.swap .card{animation:cardin .55s cubic-bezier(.2,.9,.3,1.1) both}
+.grid.swap .card:nth-child(2){animation-delay:0.07s}
+.grid.swap .card:nth-child(3){animation-delay:0.14s}
+.grid.swap .card:nth-child(4){animation-delay:0.21s}
+.grid.swap .card:nth-child(5){animation-delay:0.28s}
+.grid.swap .card:nth-child(6){animation-delay:0.35s}
+.grid.swap .card:nth-child(7){animation-delay:0.42s}
+.grid.swap .card:nth-child(8){animation-delay:0.49s}
+.grid.swap .card:nth-child(9){animation-delay:0.56s}
+.grid.swap .card:nth-child(10){animation-delay:0.63s}
+.grid.swap .card:nth-child(11){animation-delay:0.70s}
+.grid.swap .card:nth-child(12){animation-delay:0.77s}
+@keyframes grow{from{width:0}}
+@keyframes drive{from{left:0}}
+@keyframes bump{from{transform:translateY(-6%)}to{transform:translateY(6%)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.car{display:block;overflow:visible}
+.wh{transform-box:fill-box;transform-origin:center;animation:spin .6s linear infinite}
+.road .car{position:absolute;top:50%;height:calc(var(--cu)*5.6);aspect-ratio:64/28;left:calc((100% - var(--cu)*12.8)*var(--pn));translate:0 -62%;color:var(--c);animation:drive 1.6s cubic-bezier(.25,.8,.3,1) both,bump .5s ease-in-out infinite alternate;filter:drop-shadow(0 calc(var(--cu)*.4) calc(var(--cu)*.5) rgba(0,0,0,.35))}
+.sroad{position:relative;height:9vh;margin-top:1.2vh;border-radius:99px;background:var(--panel2);overflow:hidden;width:min(100%,70vh)}
+.sroad .lane{position:absolute;left:0;right:0;top:50%;height:.5vh;translate:0 -50%;background:repeating-linear-gradient(90deg,var(--muted) 0 3vh,transparent 3vh 6vh);opacity:.55;animation:lane 1.2s linear infinite}
+@keyframes lane{to{background-position:-6vh 0}}
+.sroad .trail{position:absolute;left:0;top:0;bottom:0;width:calc(var(--pn)*100%);background:var(--c);opacity:.22;animation:grow 2.2s cubic-bezier(.25,.8,.3,1) both}
+.sroad .car{position:absolute;top:50%;height:6.4vh;aspect-ratio:64/28;left:calc((100% - 14.6vh - 5vh)*var(--pn));translate:0 -50%;color:var(--c);animation:drive 2.2s cubic-bezier(.25,.8,.3,1) both,bump .5s ease-in-out infinite alternate}
+.sroad .flag{position:absolute;right:1.2vh;top:50%;height:5vh;translate:0 -50%}
+.timer i.run::after{content:"";position:absolute;right:-4px;top:-13px;width:36px;height:16px;background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 28'><path d='M3 21v-4c0-2 1-3 3-3l9-1 7-7h19l7 7 9 1c2 0 3 1 3 3v4z' fill='%23f08a24'/><path d='M24 8h7v6H18zM34 8h6l5 6H34z' fill='%23ffffff'/><circle cx='17' cy='22' r='5' fill='%2316232b'/><circle cx='47' cy='22' r='5' fill='%2316232b'/></svg>") center/contain no-repeat}
+.crown{overflow:visible;transform-origin:50% 100%;animation:cfloat 2.4s ease-in-out infinite;filter:drop-shadow(0 0 calc(var(--cu)*1.4) currentColor)}
+.crown.t1{height:calc(var(--cu)*15)}
+.crown.t2{height:calc(var(--cu)*12)}
+.crown.t3{height:calc(var(--cu)*10)}
+.sface .crown.t1{height:14vh}
+.sface .crown.t2{height:11vh}
+.sface .crown.t3{height:9vh}
+@keyframes cfloat{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-8%) rotate(5deg)}}
+.sp{transform-box:fill-box;transform-origin:center;animation:twk 1.6s ease-in-out infinite}
+.s2{animation-delay:.5s}.s3{animation-delay:1s}
+@keyframes twk{0%,100%{transform:scale(0);opacity:0}50%{transform:scale(1.5);opacity:1}}
+.card.crowned::after,.spot.crowned::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 0 28px var(--k);animation:glow 2.2s ease-in-out infinite}
+@keyframes glow{0%,100%{opacity:.2}50%{opacity:.8}}
+.card.k1::before,.spot.k1::before{content:"";position:absolute;top:0;bottom:0;width:30%;left:-40%;background:linear-gradient(100deg,transparent,rgba(246,196,69,.35),transparent);transform:skewX(-18deg);animation:sweep 4s ease-in-out infinite;pointer-events:none;z-index:2}
+@keyframes sweep{0%,55%{left:-40%}100%{left:130%}}
+.spot.k1 .sname{background:linear-gradient(90deg,var(--ink) 40%,#f6c445 50%,var(--ink) 60%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:nameshine 3.5s linear infinite}
+@keyframes nameshine{from{background-position:120% 0}to{background-position:-120% 0}}
+.cf{position:absolute;top:-6vh;width:1.3vh;height:2vh;opacity:.85;pointer-events:none;animation:fall var(--w) linear var(--d) infinite}
+.cf.coin{width:3.4vh;height:3.4vh;border-radius:50%;background:#f6c445;border:2px solid #c99a1d;color:#7a5200;font:700 2.2vh/3vh 'Barlow Condensed',Arial,sans-serif;text-align:center;animation-name:fallc}
+@keyframes fall{0%{transform:translateY(0) rotate(0)}100%{transform:translateY(115vh) rotate(540deg)}}
+@keyframes fallc{0%{transform:translateY(0) rotateY(0)}100%{transform:translateY(115vh) rotateY(900deg)}}
+@container card (max-height:340px){
+  .face{position:relative}
+  .card.crowned .inner{padding-top:calc(var(--cu)*9)}
+  .face .crown{position:absolute;top:calc(var(--cu)*-9);left:50%;translate:-50% 0;z-index:2}
+  .face .crown.t1{height:calc(var(--cu)*12)}
+  .face .crown.t2{height:calc(var(--cu)*10)}
+  .face .crown.t3{height:calc(var(--cu)*9)}
+}
+@media (prefers-reduced-motion:reduce){
+  .crown,.sp,.car,.wh,.fill,.cf,.lane,.trail,.card::after,.spot::after,.card::before,.spot::before,.spot .sname,.grid.swap .card{animation:none !important}
+}
+
 .none{color:var(--muted);font-size:clamp(18px,3vh,36px);padding:4vh 2vw}
 `,HTML=`<section id="board">
   <div class="timer" aria-hidden="true"><i id="timerBar"></i></div>
@@ -744,10 +805,16 @@ function enriched(){const L=members.map((m,i)=>{const o=Object.assign({},m);o.pc
 function sortList(L){const s=st.sort;return L.slice().sort((a,b)=>{if(s==="name")return a.name.localeCompare(b.name);if(s==="dept")return a.dept.localeCompare(b.dept)||b.pct-a.pct;if(s==="target")return b.target-a.target;return b.pct-a.pct})}
 const CROWN_COL=["","#f6c445","#c9d4dc","#d08a4e"],CROWN_LBL=["","Top performer","Second place","Third place"];
 function crownTier(m){if(m.pct<=0||st.crown==="off")return 0;if(st.crown==="100")return m.pct>=100?1:0;const lim=st.crown==="3"?3:1;return m.rank<=lim?m.rank:0}
-function crownSVG(t){const k=' stroke="rgba(0,0,0,.32)" stroke-width="1.5" stroke-linejoin="round"';return '<svg class="crown" viewBox="0 0 64 44" style="color:'+CROWN_COL[t]+'" role="img" aria-label="'+CROWN_LBL[t]+'"><title>'+CROWN_LBL[t]+'</title><path d="M5 36 9 12l15 12L32 5l8 19 15-12 4 24z" fill="currentColor"'+k+'/><rect x="5" y="37" width="54" height="6" rx="2" fill="currentColor"'+k+'/><circle cx="9" cy="10" r="3.5" fill="currentColor"'+k+'/><circle cx="32" cy="3.8" r="3.5" fill="currentColor"'+k+'/><circle cx="55" cy="10" r="3.5" fill="currentColor"'+k+'/><circle cx="20" cy="40" r="1.7" fill="rgba(0,0,0,.3)"/><circle cx="32" cy="40" r="1.7" fill="rgba(0,0,0,.3)"/><circle cx="44" cy="40" r="1.7" fill="rgba(0,0,0,.3)"/></svg>'}
+function crownSVG(t){const k=' stroke="rgba(0,0,0,.32)" stroke-width="1.5" stroke-linejoin="round"';return '<svg class="crown t'+t+'" viewBox="0 0 64 44" style="color:'+CROWN_COL[t]+'" role="img" aria-label="'+CROWN_LBL[t]+'"><title>'+CROWN_LBL[t]+'</title><path d="M5 36 9 12l15 12L32 5l8 19 15-12 4 24z" fill="currentColor"'+k+'/><rect x="5" y="37" width="54" height="6" rx="2" fill="currentColor"'+k+'/><circle cx="9" cy="10" r="3.5" fill="currentColor"'+k+'/><circle cx="32" cy="3.8" r="3.5" fill="currentColor"'+k+'/><circle cx="55" cy="10" r="3.5" fill="currentColor"'+k+'/><circle cx="20" cy="40" r="1.7" fill="rgba(0,0,0,.3)"/><circle cx="32" cy="40" r="1.7" fill="rgba(0,0,0,.3)"/><circle cx="44" cy="40" r="1.7" fill="rgba(0,0,0,.3)"/><g transform="translate(-3 8)"><path class="sp" d="M0-4 1-1 4 0 1 1 0 4-1 1-4 0-1-1z" fill="#fff"/></g><g transform="translate(67 3)"><path class="sp s2" d="M0-4 1-1 4 0 1 1 0 4-1 1-4 0-1-1z" fill="#fff"/></g><g transform="translate(32 -6)"><path class="sp s3" d="M0-4 1-1 4 0 1 1 0 4-1 1-4 0-1-1z" fill="#fff"/></g></svg>'}
+const CARSVG='<svg class="car" viewBox="0 0 64 28" aria-hidden="true"><path d="M3 21v-4c0-2 1-3 3-3l9-1 7-7h19l7 7 9 1c2 0 3 1 3 3v4z" fill="currentColor"/><path d="M24 8h7v6H18zM34 8h6l5 6H34z" fill="rgba(255,255,255,.88)"/><g class="wh"><circle cx="17" cy="22" r="5" fill="#16232b"/><circle cx="17" cy="22" r="1.8" fill="#cfd8dc"/><path d="M17 18v8M13 22h8" stroke="#cfd8dc" stroke-width=".9"/></g><g class="wh"><circle cx="47" cy="22" r="5" fill="#16232b"/><circle cx="47" cy="22" r="1.8" fill="#cfd8dc"/><path d="M47 18v8M43 22h8" stroke="#cfd8dc" stroke-width=".9"/></g></svg>';
+const FLAGSVG='<svg class="flag" viewBox="0 0 24 28" aria-hidden="true"><rect x="2" y="2" width="2" height="24" fill="#8a9aa3"/><rect x="4" y="3" width="20" height="10" fill="#fff" stroke="#8a9aa3" stroke-width=".6"/><g fill="#111"><rect x="4" y="3" width="5" height="5"/><rect x="14" y="3" width="5" height="5"/><rect x="9" y="8" width="5" height="5"/><rect x="19" y="8" width="5" height="5"/></g></svg>';
+function confettiHTML(){const C=["#f6c445","#5fd7a2","#ff7a6b","#7cc4ff","#f08a24"];let h="";for(let i=0;i<18;i++){const coin=i%4===0;h+='<span class="cf'+(coin?" coin":"")+'" style="left:'+((i*37+11)%96)+'%;--d:-'+((i*13%9)/2).toFixed(1)+'s;--w:'+(5+i%5)+'s;'+(coin?"":"background:"+C[i%C.length]+";")+'">'+(coin?"\u20b9":"")+'</span>'}return h}
+let CUonce=false;
+function countUp(){if(window.matchMedia&&matchMedia("(prefers-reduced-motion:reduce)").matches)return;root.querySelectorAll(".pct,.ringtxt").forEach(el=>{const n=parseFloat(el.textContent);if(!(n>0))return;const t0=performance.now(),step=t=>{const k=Math.min(1,(t-t0)/1100),e=1-Math.pow(1-k,3);el.textContent=Math.round(n*e)+"%";if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step)})}
+
 function faceHTML(m,t){const ph=photoFor(m);return (t?crownSVG(t):"")+(ph?'<img class="photo" src="'+ph+'" alt="'+esc(m.name)+'">':'<div class="avatar" style="background:hsl('+hue(m.name)+' 38% 34%)" aria-hidden="true">'+esc(initials(m.name))+'</div>')}
-function cardHTML(m){const c=statusColor(m.pct),t=crownTier(m);return '<article class="card'+(t?" crowned":"")+'" data-idx="'+m.idx+'" style="--c:'+c+(t?";--k:"+CROWN_COL[t]:"")+'"><div class="inner"><div class="face">'+faceHTML(m,t)+'</div>'+(st.sort==="pct"?'<span class="rank">#'+m.rank+'</span>':"")+'<div class="head"><div class="who"><div class="name">'+esc(m.name)+'</div><div class="dept">'+esc(m.dept)+'</div></div><div class="pct">'+Math.round(m.pct)+'%</div></div><div class="track"><div class="fill" style="width:'+Math.max(0,Math.min(m.pct,100))+'%"></div></div><div class="stats"><div><b>'+fmt(m.target)+'</b><span>Target</span></div><div class="a"><b>'+fmt(m.achieved)+'</b><span>Achieved</span></div><div class="p"><b>'+fmt(m.pending)+'</b><span>Pending</span></div></div></div></article>'}
-function spotHTML(m,total,deptPct,swap){const c=statusColor(m.pct),t=crownTier(m),C=326.7,off=C*(1-Math.max(0,Math.min(m.pct,100))/100);return '<article class="spot'+(t?" crowned":"")+(swap?" swap":"")+'" style="--c:'+c+(t?";--k:"+CROWN_COL[t]:"")+'"><div class="sface">'+faceHTML(m,t)+'</div><div class="sinfo"><div class="sname">'+esc(m.name)+'</div><div class="sdept">Team: '+esc(m.dept)+'</div><div class="ssub">Rank #'+m.rank+' of '+total+'. '+esc(m.dept)+' team average '+deptPct+'%.'+(t?" "+CROWN_LBL[t]+".":"")+'</div><div class="srow"><svg class="ring" viewBox="0 0 120 120" role="img" aria-label="'+Math.round(m.pct)+' percent of target"><circle class="ringbg" cx="60" cy="60" r="52"/><circle class="ringfg" cx="60" cy="60" r="52" style="stroke-dashoffset:'+off+'"/><text class="ringtxt" x="60" y="71">'+Math.round(m.pct)+'%</text></svg><div class="sstats"><span>Target</span><b>'+fmtFull(m.target)+'</b><span>Achieved</span><b class="a">'+fmtFull(m.achieved)+'</b><span>Pending</span><b class="p">'+fmtFull(m.pending)+'</b></div></div></div></article>'}
+function cardHTML(m){const c=statusColor(m.pct),t=crownTier(m);return '<article class="card'+(t?" crowned k"+t:"")+'" data-idx="'+m.idx+'" style="--c:'+c+(t?";--k:"+CROWN_COL[t]:"")+'"><div class="inner"><div class="face">'+faceHTML(m,t)+'</div>'+(st.sort==="pct"?'<span class="rank">#'+m.rank+'</span>':"")+'<div class="head"><div class="who"><div class="name">'+esc(m.name)+'</div><div class="dept">'+esc(m.dept)+'</div></div><div class="pct">'+Math.round(m.pct)+'%</div></div><div class="road" style="--pn:'+(Math.max(0,Math.min(m.pct,100))/100)+'"><div class="track"><div class="fill" style="width:'+Math.max(0,Math.min(m.pct,100))+'%"></div></div>'+CARSVG+'</div><div class="stats"><div><b>'+fmt(m.target)+'</b><span>Target</span></div><div class="a"><b>'+fmt(m.achieved)+'</b><span>Achieved</span></div><div class="p"><b>'+fmt(m.pending)+'</b><span>Pending</span></div></div></div></article>'}
+function spotHTML(m,total,deptPct,swap){const c=statusColor(m.pct),t=crownTier(m),C=326.7,off=C*(1-Math.max(0,Math.min(m.pct,100))/100);return '<article class="spot'+(t?" crowned k"+t:"")+(swap?" swap":"")+'" style="--c:'+c+(t?";--k:"+CROWN_COL[t]:"")+'"><div class="sface">'+faceHTML(m,t)+'</div><div class="sinfo"><div class="sname">'+esc(m.name)+'</div><div class="sdept">Team: '+esc(m.dept)+'</div><div class="ssub">Rank #'+m.rank+' of '+total+'. '+esc(m.dept)+' team average '+deptPct+'%.'+(t?" "+CROWN_LBL[t]+".":"")+'</div><div class="srow"><svg class="ring" viewBox="0 0 120 120" role="img" aria-label="'+Math.round(m.pct)+' percent of target"><circle class="ringbg" cx="60" cy="60" r="52"/><circle class="ringfg" cx="60" cy="60" r="52" style="stroke-dashoffset:'+off+'"/><text class="ringtxt" x="60" y="71">'+Math.round(m.pct)+'%</text></svg><div class="sstats"><span>Target</span><b>'+fmtFull(m.target)+'</b><span>Achieved</span><b class="a">'+fmtFull(m.achieved)+'</b><span>Pending</span><b class="p">'+fmtFull(m.pending)+'</b></div></div><div class="sroad" style="--pn:'+(Math.max(0,Math.min(m.pct,100))/100)+'"><div class="lane"></div><div class="trail"></div>'+CARSVG+FLAGSVG+'</div></div>'+(t===1?confettiHTML():"")+'</article>'}
 function currentList(){const all=enriched();if(st.dept!=="All"&&!all.some(m=>m.dept===st.dept)){st.dept="All";st.sub="All"}return{all,list:sortList(all.filter(m=>st.dept==="All"||m.dept===st.dept))}}
 function cycleDept(d){const ds=["All"];enriched().forEach(m=>{if(ds.indexOf(m.dept)<0)ds.push(m.dept)});if(ds.length<2)return;const i=ds.indexOf(st.dept);st.dept=ds[(i+d+ds.length)%ds.length];st.page=0;render(true)}
 function render(swap,keep){const L=layout(),cl=currentList(),all=cl.all,list=cl.list;const pages=Math.max(1,Math.ceil(list.length/L.per));st.pages=pages;if(st.page>=pages)st.page=0;
@@ -769,6 +836,7 @@ q("#pageInfo").textContent="Showing "+(list.length?start:0)+"\u2013"+end+" of "+
 let d="";if(pages>1&&pages<=12)for(let j=0;j<pages;j++)d+='<i class="'+(j===st.page?"on":"")+'"></i>';q("#dots").innerHTML=d;
 q("#sortSel").value=st.sort;q("#perSel").value=String(st.perPage);q("#secSel").value=String(st.secs);q("#viewSel").value=st.view;q("#crownSel").value=st.crown;q("#perSel").disabled=!!L.spot;q("#pauseBtn").textContent=st.paused?"Resume":"Pause";
 q("#ptSel").value=tgt;const per=tgPer();q("#pcell").innerHTML=tgt==="m"?'<input type="month" id="pmSel" value="'+tgMonth()+'" aria-label="Month">':'<select id="ppSel" aria-label="Period">'+perOpts().map(o=>'<option value="'+o[0]+'"'+(o[0]===per.key?" selected":"")+'>'+esc(o[1])+'</option>').join("")+'</select>';
+if(swap||!CUonce){CUonce=true;countUp()}
 schedule(keep)}
 function schedule(keep){if(keep&&timer&&!st.paused&&st.pages>1)return;clearTimeout(timer);timer=null;const bar=q("#timerBar");bar.classList.remove("run");bar.style.animationDuration="";if(st.pages>1&&!st.paused){void bar.offsetWidth;bar.style.animationDuration=st.secs+"s";bar.classList.add("run");timer=setTimeout(()=>{timer=null;go(1)},st.secs*1000)}}
 function go(d){st.page=(st.page+d+st.pages)%st.pages;render(true)}
