@@ -1075,13 +1075,14 @@ return `<label>Model<select name="carSel" data-pk="car"><option value="">Select<
 function cuFormVal(f,k){const s=f.elements[k+"Sel"];if(!s)return "";return s.value==="Other"?String((f.elements[k+"Other"]||{}).value||"").trim():s.value}
 function cuModelRefresh(){const f=$("#cuf"),w=$("#carW");if(!f||!w)return;w.innerHTML=cuModelInner(cuFormVal(f,"veh"),cuFormVal(f,"car"));cuModelBind()}
 function cuModelBind(){const s=document.querySelector('#cuf [name="carSel"]');if(s)s.onchange=()=>{const o=$("#carOw");if(o)o.style.display=s.value==="Other"?"":"none"}}
-function cuPinLook(){const f=$("#cuf");if(!f||!f.elements.pin)return;const p=f.elements.pin,m=$("#pinMsg"),v=p.value.replace(/\D/g,"").slice(0,6);p.value=v;if(v.length!==6){if(m)m.textContent="";return}
+function cuLocLock(f,lock,msg){["resloc","state"].forEach(k=>{const e=f.elements[k];if(!e)return;e.readOnly=lock;e.style.opacity=lock?".6":"";e.style.cursor=lock?"not-allowed":"";e.placeholder=lock?"Auto from pincode":"Type it here"})}
+function cuPinLook(){const f=$("#cuf");if(!f||!f.elements.pin)return;const p=f.elements.pin,m=$("#pinMsg"),v=p.value.replace(/\D/g,"").slice(0,6);p.value=v;if(v.length!==6){cuLocLock(f,true);if(m)m.textContent="";return}
 if(m)m.textContent="Looking up...";const tk=++CUpin;
 fetch("https://api.postalpincode.in/pincode/"+v).then(r=>r.json()).then(j=>{if(tk!==CUpin)return;const o=j&&j[0]&&j[0].Status==="Success"&&j[0].PostOffice&&j[0].PostOffice[0];
-if(!o){if(m)m.textContent="Pincode not found. Please type the location and state.";return}
+if(!o){cuLocLock(f,false);if(m)m.textContent="Pincode not found. Please type the location and state.";return}
 const dist=o.District||"",loc=[o.Name,dist].filter(Boolean).join(", ");
 if(f.elements.resloc)f.elements.resloc.value=loc;if(f.elements.state)f.elements.state.value=o.State||"";
-if(m)m.textContent="Found: "+loc+", "+(o.State||"")}).catch(()=>{if(tk===CUpin&&m)m.textContent="Could not look up the pincode. Check your internet, or type the location and state."})}
+cuLocLock(f,true);if(m)m.textContent="Found: "+loc+", "+(o.State||"")}).catch(()=>{if(tk===CUpin){cuLocLock(f,false);if(m)m.textContent="Could not look up the pincode. Check your internet, or type the location and state."}})}
 function cuTlSync(src){const f=$("#cuf"),t=f&&f.elements.tl;if(!t)return;const a=cuFormVal(f,src),b=cuFormVal(f,src==="tc"?"fos":"tc");t.value=cuMgrOf(a)||cuMgrOf(b)||""}
 function cuFld(f,val){const L=esc(f.l);if(f.t==="year"){const y0=new Date().getFullYear()+1,ys=[];for(let y=y0;y>=1995;y--)ys.push(String(y));const sv=val?String(val):"";if(sv&&!ys.includes(sv))ys.push(sv);return `<div><label>${L}<select name="year"><option value="">Select</option>${ys.map(y=>`<option${y===sv?" selected":""}>${y}</option>`).join("")}</select></label></div>`}
 if(f.t==="pin")return `<div><label>${L}<input name="pin" inputmode="numeric" maxlength="6" placeholder="6-digit pincode" value="${esc(val||"")}"></label><div id="pinMsg" class="mute" style="font-size:12px;margin-top:4px"></div></div>`;
@@ -1165,7 +1166,7 @@ const si=$("#cust");if(si)si.onchange=()=>{CUst=si.value;cuFind()};
 $$("[data-pk]").forEach(sl=>sl.onchange=()=>{const o=$("#"+sl.dataset.pk+"Ow");if(o)o.style.display=sl.value==="Other"?"":"none"});
 const cf=$("#cuf");if(cf){const kd=cf.elements.kind;if(kd)kd.addEventListener("change",()=>{const w=$("#prodW");if(w)w.innerHTML=cuProdInner(kd.value,"")});
 ["vehSel","vehOther"].forEach(n=>{const el=cf.elements[n];if(el)el.addEventListener(n==="vehSel"?"change":"input",cuModelRefresh)});
-[["tcSel","tc","change"],["tcOther","tc","input"],["fosSel","fos","change"],["fosOther","fos","input"]].forEach(a=>{const el=cf.elements[a[0]];if(el)el.addEventListener(a[2],()=>cuTlSync(a[1]))});const pn=cf.elements.pin;if(pn)pn.addEventListener("input",()=>{clearTimeout(CUpt);CUpt=setTimeout(cuPinLook,300)});
+[["tcSel","tc","change"],["tcOther","tc","input"],["fosSel","fos","change"],["fosOther","fos","input"]].forEach(a=>{const el=cf.elements[a[0]];if(el)el.addEventListener(a[2],()=>cuTlSync(a[1]))});const pn=cf.elements.pin;cuLocLock(cf,String(pn&&pn.value||"").length===6||!(cf.elements.resloc&&cf.elements.resloc.value)&&!(cf.elements.state&&cf.elements.state.value));if(pn)pn.addEventListener("input",()=>{clearTimeout(CUpt);CUpt=setTimeout(cuPinLook,300)});
 cuModelBind();cuDealerBind()}
 const cc=$("#cucancel");if(cc)cc.onclick=()=>{CUe=null;render()};
 const cs=$("#cucsv");if(cs)cs.onclick=()=>dl("customers.csv",cuCsv(cuAll()),"text/csv");
