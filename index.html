@@ -84,6 +84,7 @@ input[type=checkbox]:disabled{opacity:.7}
 .ph p{margin:2px 0 0;font-size:12px}
 #slip table{border-collapse:collapse;width:100%}#slip td{padding:6px 10px}
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:12px}.two .panel{margin:0}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .pg{display:grid;grid-template-columns:150px 1fr 44px;align-items:center;gap:8px;font-size:13px;margin:7px 0}.pg u{display:block;height:12px;background:var(--line);border-radius:6px;overflow:hidden;text-decoration:none}.pg u i{display:block;height:100%;border-radius:6px;background:#3fb56b}.pg u i.m{background:#e0a030}.pg u i.l{background:#e05555}.pg b{text-align:right}.pgt{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600}.pgt u{display:inline-block;width:60px;height:8px;background:var(--line);border-radius:4px;overflow:hidden;text-decoration:none}.pgt u i{display:block;height:100%;background:#3fb56b}.pgt u i.m{background:#e0a030}.pgt u i.l{background:#e05555}.afl{display:inline-block;cursor:pointer}.afl input{display:none}
 .hb{display:grid;grid-template-columns:110px 1fr 28px;align-items:center;gap:8px;font-size:13px;margin:8px 0}
 .hb u{display:block;height:14px;background:var(--line);border-radius:4px;overflow:hidden;text-decoration:none}.hb u i{display:block;height:100%;background:var(--ac);border-radius:4px}.hb b{text-align:right}
@@ -1070,6 +1071,7 @@ if(r.status==="Disbursed"&&!r.disb)return toast("Please enter the Disburse Date 
 const old=CUe&&cuGet(CUe),id=CUe||("c"+Date.now().toString(36)+Math.random().toString(36).slice(2,6));
 const rec={...(old||{}),...r,id,by:old&&old.by?old.by:me,at:old&&old.at?old.at:Date.now(),upd:Date.now()};
 try{await setDoc(doc(db,"cust",id),rec);log((old?"Updated":"Added")+" customer record "+r.name);toast(r.status==="Disbursed"&&r.disb>=AUTO_FROM&&!r.tc&&!r.fos?"Saved. No Telecaller or FOS was entered, so no target was updated":"Customer saved");CUe=null;if(!old)cuCount();if(CUm)await cuFind();render()}catch(x){console.error(x);toast(x&&x.code==="permission-denied"?"No permission. Add the customers rule in Firestore and publish it.":"Could not save. Check your internet and try again.")}}}
+document.addEventListener("wheel",()=>{const a=document.activeElement;if(a&&a.type==="number")a.blur()},{passive:true});
 function render(){if(me&&meP&&loaded)cuAuto();$(".app").classList.toggle("out",!me);if(!me){document.documentElement.classList.remove("bdwait");$("#main").innerHTML=loginV();bind();return}$("#out").textContent="Sign out ("+me+")";
 if(boardMode&&meP&&!canTgt()){boardMode=false;document.documentElement.classList.remove("bdwait");try{setPersistence(auth,browserSessionPersistence)}catch(x){}}
 if(boardMode&&!loaded)document.documentElement.classList.add("bdwait");
