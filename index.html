@@ -764,10 +764,39 @@ button,select,input{font:inherit;color:inherit}
   .crown,.sp,.car,.wh,.fill,.cf,.lane,.trail,.card::after,.spot::after,.card::before,.spot::before,.spot .sname,.grid.swap .card{animation:none !important}
 }
 
+/* ---------- Board themes ---------- */
+.top,.chips,.grid,.spotwrap,.foot{position:relative;z-index:1}
+#scene{position:absolute;left:0;right:0;bottom:0;height:6vh;pointer-events:none;z-index:0;overflow:hidden;display:none}
+#board:not([data-th="classic"]) #scene{display:block}
+#scene .rd{position:absolute;left:0;right:0;bottom:0;height:3.2vh;background:rgba(0,0,0,.35)}
+#scene .rd::after{content:"";position:absolute;left:0;right:0;top:50%;height:.4vh;background:repeating-linear-gradient(90deg,rgba(255,255,255,.6) 0 3vh,transparent 3vh 6vh);animation:lane 1s linear infinite}
+#scene .dr{position:absolute;bottom:.8vh;height:4vh;left:-14vh;animation:cross 14s linear infinite}
+#scene .dr .car{height:100%;width:auto}
+#scene .d1{color:#ff5a4f}
+#scene .d2{color:#ffd166;bottom:2.4vh;height:3.2vh;animation-duration:19s;animation-delay:-6s}
+#scene .d3{color:#4fd1c5;animation-duration:25s;animation-delay:-12s}
+@keyframes cross{from{transform:translateX(0)}to{transform:translateX(calc(100vw + 28vh))}}
+#board[data-th="showroom"]{--bg:#0a0f1c;--panel:#141c30;--panel2:#22304f;--ink:#f3f6fb;--muted:#9fb0cf;--line:#2c3b5e;--good:#5fe0a8;--warn:#ffc857;--bad:#ff6f61;background:radial-gradient(ellipse at 50% -10%,#2f4585 0,#0a0f1c 62%)}
+#board[data-th="showroom"] .card,#board[data-th="showroom"] .spot{border-color:rgba(255,200,87,.35);box-shadow:0 0 2vh rgba(255,200,87,.12)}
+#board[data-th="showroom"]::before{content:"";position:absolute;top:0;left:50%;translate:-50% 0;width:70vw;height:40vh;background:conic-gradient(from 180deg at 50% 0,transparent 160deg,rgba(255,230,160,.16) 175deg,transparent 190deg);pointer-events:none;z-index:0;animation:glow 5s ease-in-out infinite}
+#board[data-th="racing"]{--bg:#0d0d10;--panel:#1a1a20;--panel2:#2a2a33;--ink:#ffffff;--muted:#b4b4c0;--line:#3a3a46;--good:#3ddc97;--warn:#ffb020;--bad:#ff3b30;background:#0d0d10}
+#board[data-th="racing"] .card,#board[data-th="racing"] .spot{border-top:.5vh solid #e10600}
+#board[data-th="racing"]::before,#board[data-th="racing"]::after{content:"";position:absolute;left:0;right:0;height:1.4vh;background:repeating-conic-gradient(#fff 0 25%,#111 0 50%) 0 0/1.4vh 1.4vh;opacity:.85;pointer-events:none;z-index:0}
+#board[data-th="racing"]::before{top:4px}
+#board[data-th="racing"]::after{bottom:0}
+#board[data-th="sunset"]{--bg:#2a1450;--panel:rgba(42,16,72,.62);--panel2:rgba(255,255,255,.2);--ink:#fff7ee;--muted:#ffd9c2;--line:rgba(255,200,160,.4);--good:#7dffc4;--warn:#ffd166;--bad:#ff8a7a;background:radial-gradient(circle at 50% 108%,rgba(255,214,102,.75) 0,transparent 38%),linear-gradient(180deg,#2a1450 0%,#a1346b 58%,#ff8a4c 100%)}
+#board[data-th="sunset"] .card,#board[data-th="sunset"] .spot{backdrop-filter:blur(6px)}
+#board[data-th="night"]{--bg:#050b1a;--panel:#0b1530;--panel2:#16254d;--ink:#e8f4ff;--muted:#7fa3d6;--line:#1c3a73;--good:#39ffb0;--warn:#ffe066;--bad:#ff5c8a;background:linear-gradient(180deg,#050b1a,#0b1d46)}
+#board[data-th="night"] .card,#board[data-th="night"] .spot{box-shadow:0 0 1.4vh rgba(57,255,176,.22)}
+#board[data-th="night"]::before{content:"";position:absolute;inset:0;background-image:radial-gradient(2px 2px at 10% 20%,#fff,transparent),radial-gradient(1.5px 1.5px at 30% 60%,#fff,transparent),radial-gradient(2px 2px at 55% 15%,#cfe,transparent),radial-gradient(1.5px 1.5px at 70% 45%,#fff,transparent),radial-gradient(2px 2px at 88% 25%,#fff,transparent),radial-gradient(1.5px 1.5px at 42% 85%,#fff,transparent),radial-gradient(2px 2px at 92% 70%,#cfe,transparent);animation:twk2 4s ease-in-out infinite alternate;pointer-events:none;z-index:0}
+@keyframes twk2{from{opacity:.35}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){#scene .dr,#scene .rd::after,#board::before{animation:none !important}}
+
 .none{color:var(--muted);font-size:clamp(18px,3vh,36px);padding:4vh 2vw}
 `,HTML=`<section id="board">
   <div class="timer" aria-hidden="true"><i id="timerBar"></i></div>
   <div id="bdPage" hidden></div>
+  <div id="scene" aria-hidden="true"></div>
   <header class="top"><div class="ttl"><h1 id="bTitle"></h1><p id="bPeriod"></p></div><div class="tot" id="totals"></div></header>
   <nav class="chips" id="chips" aria-label="Filter by team"></nav>
   <nav class="chips chips2" id="chips2" hidden></nav>
@@ -783,6 +812,7 @@ button,select,input{font:inherit;color:inherit}
       <select id="sortSel" aria-label="Sort by"><option value="pct">Sort: achievement %</option><option value="name">Sort: name</option><option value="dept">Sort: team</option><option value="target">Sort: target</option></select>
       <select id="viewSel" aria-label="View"><option value="grid">View: all agents</option><option value="spot">View: one agent at a time</option></select>
       <select id="crownSel" aria-label="Crowns"><option value="off">Crowns: off</option><option value="1">Crowns: top 1</option><option value="3">Crowns: top 3</option><option value="100">Crowns: everyone at 100%+</option></select>
+      <select id="thSel" aria-label="Theme"><option value="classic">Theme: Classic</option><option value="showroom">Theme: Showroom</option><option value="racing">Theme: Racing</option><option value="sunset">Theme: Sunset highway</option><option value="night">Theme: Night city</option></select>
       <select id="perSel" aria-label="Agents per page"><option value="6">6 per page</option><option value="8">8 per page</option><option value="10">10 per page</option><option value="12">12 per page</option><option value="15">15 per page</option><option value="20">20 per page</option></select>
       <select id="secSel" aria-label="Seconds per page"><option value="5">5 sec</option><option value="8">8 sec</option><option value="10">10 sec</option><option value="15">15 sec</option><option value="20">20 sec</option><option value="30">30 sec</option></select>
       <select id="ptSel" aria-label="Period type"><option value="m">Period: monthly</option><option value="q">Period: quarterly</option><option value="y">Period: yearly</option></select>
@@ -794,11 +824,11 @@ button,select,input{font:inherit;color:inherit}
     </div>
   </div>
 </section>`;
-const st={sort:"pct",perPage:10,secs:10,dept:"All",sub:"All",page:0,paused:false,pages:1,view:"spot",crown:"3"};
-try{const d=JSON.parse(localStorage.getItem("tpb:portal")||"null");if(d){st.sort=d.sort||st.sort;st.perPage=d.per||st.perPage;st.secs=d.secs||st.secs;st.view=d.view||st.view;st.crown=d.crown||st.crown}}catch(e){}
+const st={sort:"pct",perPage:10,secs:10,dept:"All",sub:"All",page:0,paused:false,pages:1,view:"spot",crown:"3",th:"classic"};
+try{const d=JSON.parse(localStorage.getItem("tpb:portal")||"null");if(d){st.sort=d.sort||st.sort;st.perPage=d.per||st.perPage;st.secs=d.secs||st.secs;st.view=d.view||st.view;st.crown=d.crown||st.crown;st.th=d.th||st.th}}catch(e){}
 let host=null,root=null,timer=null,idleT=null,members=[],period="",title="",live=false;
 const q=s=>root.querySelector(s);
-const save=()=>{try{localStorage.setItem("tpb:portal",JSON.stringify({sort:st.sort,per:st.perPage,secs:st.secs,view:st.view,crown:st.crown}))}catch(e){}};
+const save=()=>{try{localStorage.setItem("tpb:portal",JSON.stringify({sort:st.sort,per:st.perPage,secs:st.secs,view:st.view,crown:st.crown,th:st.th}))}catch(e){}};
 const nf=new Intl.NumberFormat("en-IN"),cf=new Intl.NumberFormat("en-IN",{notation:"compact",maximumFractionDigits:1});
 const fmt=n=>Math.abs(n)>=100000?cf.format(n):nf.format(n),fmtFull=n=>Math.abs(n)>=1e8?cf.format(n):nf.format(n);
 const initials=n=>{const p=String(n).trim().split(/\s+/);return ((p[0]||"")[0]||"").toUpperCase()+((p.length>1?p[p.length-1][0]:"")||"").toUpperCase()};
@@ -825,7 +855,7 @@ function cardHTML(m){const c=statusColor(m.pct),t=crownTier(m);return '<article 
 function spotHTML(m,total,deptPct,swap){const c=statusColor(m.pct),t=crownTier(m),C=326.7,off=C*(1-Math.max(0,Math.min(m.pct,100))/100);return '<article class="spot'+(t?" crowned k"+t:"")+(swap?" swap":"")+'" style="--c:'+c+(t?";--k:"+CROWN_COL[t]:"")+'"><div class="sface">'+faceHTML(m,t)+'</div><div class="sinfo"><div class="sname">'+esc(m.name)+'</div><div class="sdept">Team: '+esc(m.dept)+'</div><div class="ssub">Rank #'+m.rank+' of '+total+'. '+esc(m.dept)+' team average '+deptPct+'%.'+(t?" "+CROWN_LBL[t]+".":"")+'</div><div class="srow"><svg class="ring" viewBox="0 0 120 120" role="img" aria-label="'+Math.round(m.pct)+' percent of target"><circle class="ringbg" cx="60" cy="60" r="52"/><circle class="ringfg" cx="60" cy="60" r="52" style="stroke-dashoffset:'+off+'"/><text class="ringtxt" x="60" y="71">'+Math.round(m.pct)+'%</text></svg><div class="sstats"><span>Target</span><b>'+fmtFull(m.target)+'</b><span>Achieved</span><b class="a">'+fmtFull(m.achieved)+'</b><span>Pending</span><b class="p">'+fmtFull(m.pending)+'</b>'+'<span>Cars</span><b>'+carsTxt(m)+'</b></div></div><div class="sroad" style="--pn:'+(Math.max(0,Math.min(m.pct,100))/100)+'"><div class="lane"></div><div class="trail"></div>'+CARSVG+FLAGSVG+'</div></div>'+(t===1?confettiHTML():"")+'</article>'}
 function currentList(){const all=enriched();if(st.dept!=="All"&&!all.some(m=>m.dept===st.dept)){st.dept="All";st.sub="All"}return{all,list:sortList(all.filter(m=>st.dept==="All"||m.dept===st.dept))}}
 function cycleDept(d){const ds=["All"];enriched().forEach(m=>{if(ds.indexOf(m.dept)<0)ds.push(m.dept)});if(ds.length<2)return;const i=ds.indexOf(st.dept);st.dept=ds[(i+d+ds.length)%ds.length];st.page=0;render(true)}
-function render(swap,keep){const L=layout(),cl=currentList(),all=cl.all,list=cl.list;const np=Math.max(1,Math.ceil(list.length/L.per)),bds=typeof bdBirthdays==="function"?bdBirthdays():[],pages=np+bds.length;st.pages=pages;if(st.page>=pages)st.page=0;const onBd=st.page>=np;
+function render(swap,keep){const L=layout(),cl=currentList(),all=cl.all,list=cl.list;const bds=typeof bdBirthdays==="function"?bdBirthdays():[],bdOnly=/^#board-birthday/.test(location.hash)&&bds.length>0,np=bdOnly?0:Math.max(1,Math.ceil(list.length/L.per)),pages=np+bds.length;st.pages=pages;if(st.page>=pages)st.page=0;const onBd=st.page>=np;
 const slice=Number.isFinite(L.per)?list.slice(st.page*L.per,(st.page+1)*L.per):list;
 q("#bTitle").textContent=title||"Team performance";q("#bPeriod").textContent=period;q("#bPeriod").hidden=!period;
 let T=0,A=0,P=0,CT=0,CA=0;list.forEach(m=>{T+=m.target;A+=m.achieved;P+=m.pending;CT+=m.ct||0;CA+=m.ca||0});
@@ -835,7 +865,7 @@ const dp=d=>{let t=0,a=0;all.forEach(m=>{if(d==="All"||m.dept===d){t+=m.target;a
 const chips=depts.length>1?["All"].concat(depts):[];
 q("#chips").innerHTML=chips.map(d=>'<button type="button" class="chip" data-dept="'+esc(d)+'" aria-pressed="'+(d===st.dept)+'">'+(d==="All"?"All teams":esc(d))+'<b>'+dp(d)+'%</b></button>').join("");q("#chips").hidden=!chips.length;
 const g=q("#grid"),sw=q("#spotWrap"),bp=q("#bdPage");
-if(onBd){const p=bds[st.page-np];g.hidden=true;sw.hidden=true;bp.hidden=false;const k=p.id+"|"+[1,2,3,4].map(i=>PH["bday"+i]?1:0).join("");if(bp.dataset.k!==k){bp.dataset.k=k;bp.innerHTML=bdPageHTML(p,st.page)}q("#pageInfo").textContent="Birthday celebration"}else{bp.hidden=true;delete bp.dataset.k;
+if(onBd){const p=bds[st.page-np];g.hidden=true;sw.hidden=true;bp.hidden=false;const k=p.id+"|"+[1,2,3,4].map(i=>PH["bday"+i]?1:0).join("");if(bp.dataset.k!==k){bp.dataset.k=k;bp.innerHTML=bdPageHTML(p,st.page);clearInterval(window.__bq);window.__bq=setInterval(()=>{const e=bp.querySelector(".bt-q");if(e&&!bp.hidden){e.style.animation="none";void e.offsetWidth;e.style.animation="";e.textContent="\u201c"+BDQ[Math.floor(Math.random()*BDQ.length)]+"\u201d"}},8000)}q("#pageInfo").textContent="Birthday celebration"}else{bp.hidden=true;delete bp.dataset.k;
 if(!list.length){g.hidden=true;sw.hidden=false;sw.innerHTML='<div class="none">No targets entered for '+esc(period)+' yet.</div>';q("#pageInfo").textContent=""}
 else if(L.spot){g.hidden=true;sw.hidden=false;sw.innerHTML=slice.length?spotHTML(slice[0],all.length,dp(slice[0].dept),swap):"";q("#pageInfo").textContent="Agent "+(list.length?st.page+1:0)+" of "+list.length}
 else{sw.hidden=true;g.hidden=false;g.className="grid"+(L.stack?" stack":"")+(swap?" swap":"");if(L.stack){g.style.gridTemplateColumns="";g.style.gridTemplateRows=""}else{g.style.gridTemplateColumns="repeat("+L.c+",minmax(0,1fr))";g.style.gridTemplateRows="repeat("+L.r+",minmax(0,1fr))"}
@@ -843,7 +873,7 @@ let h=slice.map(cardHTML).join("");if(!L.stack)for(let i=slice.length;i<L.per;i+
 const start=Number.isFinite(L.per)?st.page*L.per+1:1,end=Number.isFinite(L.per)?start+slice.length-1:list.length;
 q("#pageInfo").textContent="Showing "+(list.length?start:0)+"\u2013"+end+" of "+list.length+" agents"+(pages>1?"  \u00b7  Page "+(st.page+1)+" of "+pages:"")}}
 let d="";if(pages>1&&pages<=12)for(let j=0;j<pages;j++)d+='<i class="'+(j===st.page?"on":"")+'"></i>';q("#dots").innerHTML=d;
-q("#sortSel").value=st.sort;q("#perSel").value=String(st.perPage);q("#secSel").value=String(st.secs);q("#viewSel").value=st.view;q("#crownSel").value=st.crown;q("#perSel").disabled=!!L.spot;q("#pauseBtn").textContent=st.paused?"Resume":"Pause";
+q("#sortSel").value=st.sort;q("#perSel").value=String(st.perPage);q("#secSel").value=String(st.secs);q("#viewSel").value=st.view;q("#crownSel").value=st.crown;q("#thSel").value=st.th;q("#board").dataset.th=st.th;{const sc=q("#scene");if(sc&&!sc.firstChild)sc.innerHTML='<i class="rd"></i><span class="dr d1">'+CARSVG+'</span><span class="dr d2">'+CARSVG+'</span><span class="dr d3">'+CARSVG+'</span>'}q("#perSel").disabled=!!L.spot;q("#pauseBtn").textContent=st.paused?"Resume":"Pause";
 q("#ptSel").value=tgt;const per=tgPer();q("#pcell").innerHTML=tgt==="m"?'<input type="month" id="pmSel" value="'+tgMonth()+'" aria-label="Month">':'<select id="ppSel" aria-label="Period">'+perOpts().map(o=>'<option value="'+o[0]+'"'+(o[0]===per.key?" selected":"")+'>'+esc(o[1])+'</option>').join("")+'</select>';
 if(swap||!CUonce){CUonce=true;countUp()}
 schedule(keep)}
@@ -865,6 +895,7 @@ q("#perSel").addEventListener("change",e=>{st.perPage=+e.target.value;st.page=0;
 q("#secSel").addEventListener("change",e=>{st.secs=+e.target.value;save();schedule()});
 q("#viewSel").addEventListener("change",e=>{st.view=e.target.value;st.page=0;save();render(true)});
 q("#crownSel").addEventListener("change",e=>{st.crown=e.target.value;save();render(false,true)});
+q("#thSel").addEventListener("change",e=>{st.th=e.target.value;save();render(false,true)});
 q("#ptSel").addEventListener("change",e=>{tgt=e.target.value;st.page=0;update()});
 q("#pcell").addEventListener("change",e=>{const t=e.target;if(t.id==="pmSel")tgm=t.value||"";else if(t.id==="ppSel"){if(tgt==="q")tgq=t.value;else tgy=t.value}st.page=0;update()});
 q("#grid").addEventListener("click",e=>{const c=e.target.closest(".card[data-idx]");if(!c)return;const idx=+c.getAttribute("data-idx"),list=currentList().list;let pos=0;for(let i=0;i<list.length;i++){if(list[i].idx===idx){pos=i;break}}st.view="spot";st.page=pos;st.paused=true;save();render(true)});
@@ -1318,6 +1349,7 @@ let BDT=[],BDFS=false;
 function bdClose(){BDT.forEach(clearInterval);BDT=[];const el=document.getElementById("bdtv");if(el)el.remove();document.removeEventListener("keydown",bdKey);document.removeEventListener("fullscreenchange",bdFsChg);if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{})}
 function bdKey(e){if(e.key==="Escape")bdClose()}
 function bdFsChg(){if(BDFS&&!document.fullscreenElement)bdClose()}
+function bdOpen(){if(!bdBirthdays().length){toast("No birthdays today");return}const w=window.open(location.href.split("#")[0]+"#board-birthday","_blank");if(!w)bdShow()}
 function bdShow(){const L=bdBirthdays();if(!L.length){toast("No birthdays today");return}
 bdClose();const imgs=[1,2,3,4].map(i=>PH["bday"+i]).filter(Boolean),pos=["pa","pb","pc","pd"],C=["#ffd45c","#ff6f91","#4fd1c5","#7cc4ff","#b794f4","#ff9f5a"];
 let fx="";for(let i=0;i<12;i++)fx+='<i class="bl" style="left:'+((i*83+5)%92)+'%;--c:'+C[i%C.length]+';--s:'+(7+i%4*1.5)+';--t:'+(14+i%5*2)+'s;--d:-'+((i*3.1)%16).toFixed(1)+'s"></i>';
@@ -1349,7 +1381,7 @@ o.querySelector("#bdphx").onclick=()=>o.remove();o.addEventListener("click",e=>{
 o.querySelectorAll("[data-bk]").forEach(i=>i.onchange=async()=>{const f=i.files&&i.files[0];if(!f)return;try{const d=await bdResize(f);await setDoc(doc(db,"photos",i.dataset.bk),{d,at:Date.now()});PH[i.dataset.bk]=d;toast("Photo saved");bdPhotos()}catch(x){console.error(x);toast(x&&x.code==="permission-denied"?"Could not save the photo. Publish the updated Firestore rules first.":"Could not save the photo")}});
 o.querySelectorAll("[data-bdel]").forEach(b=>b.onclick=async()=>{try{await deleteDoc(doc(db,"photos",b.dataset.bdel));delete PH[b.dataset.bdel];toast("Photo removed");bdPhotos()}catch(x){console.error(x);toast("Could not remove the photo")}})}
 function bind(){cuBind();dlBind();
-$$("[data-xall]").forEach(b=>b.onclick=()=>{const w=document.getElementById(b.dataset.xall);if(!w)return;const on=!w.classList.contains("exp");w.classList.toggle("exp",on);w.dataset.man=on?"1":"";b.textContent=on?"Show top 10":"View all ("+b.dataset.n+")"});$$("[data-bdtv]").forEach(b=>b.onclick=bdShow);$$("[data-bdph]").forEach(b=>b.onclick=bdPhotos);
+$$("[data-xall]").forEach(b=>b.onclick=()=>{const w=document.getElementById(b.dataset.xall);if(!w)return;const on=!w.classList.contains("exp");w.classList.toggle("exp",on);w.dataset.man=on?"1":"";b.textContent=on?"Show top 10":"View all ("+b.dataset.n+")"});$$("[data-bdtv]").forEach(b=>b.onclick=bdOpen);$$("[data-bdph]").forEach(b=>b.onclick=bdPhotos);
 $$("[data-open]").forEach(r=>r.onclick=()=>{cur=r.dataset.open;v="prof";tab="details";editing=false;render()});
 $$("[data-sv]").forEach(b=>b.onclick=async()=>{const w=window.open("about:blank","_blank");try{b.disabled=true;const u=await getDownloadURL(ref(storage,b.dataset.sv));if(w)w.location.href=u;else location.href=u}catch(x){if(w)w.close();toast("Could not open the file. It may have been removed, or you do not have permission.")}finally{b.disabled=false}});
 $$("[data-view]").forEach(b=>b.onclick=async()=>{try{const bl=await fget(b.dataset.view);if(!bl)throw 0;window.open(URL.createObjectURL(bl),"_blank")}catch(x){toast("This file is not in this browser. It was attached on another computer.")}});
