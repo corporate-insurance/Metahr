@@ -866,7 +866,7 @@ const dp=d=>{let t=0,a=0;all.forEach(m=>{if(d==="All"||m.dept===d){t+=m.target;a
 const chips=depts.length>1?["All"].concat(depts):[];
 q("#chips").innerHTML=chips.map(d=>'<button type="button" class="chip" data-dept="'+esc(d)+'" aria-pressed="'+(d===st.dept)+'">'+(d==="All"?"All teams":esc(d))+'<b>'+dp(d)+'%</b></button>').join("");q("#chips").hidden=!chips.length;
 const g=q("#grid"),sw=q("#spotWrap"),bp=q("#bdPage");
-if(onBd){q("#board").classList.add("onbd");const p=bds[st.page-np];g.hidden=true;sw.hidden=true;bp.hidden=false;const k=p.id+"|"+(PH[p.id]?1:0)+"|"+[1,2,3,4].map(i=>PH["bday"+i]?1:0).join("");if(bp.dataset.k!==k){bp.dataset.k=k;bp.innerHTML=bdPageHTML(p,st.page);bp.querySelectorAll("[data-bdup]").forEach(b=>b.onclick=()=>bdUpload(b.dataset.bdup));clearInterval(window.__bq);window.__bq=setInterval(()=>{const e=bp.querySelector(".bt-q");if(e&&!bp.hidden){e.style.animation="none";void e.offsetWidth;e.style.animation="";e.textContent="\u201c"+BDQ[Math.floor(Math.random()*BDQ.length)]+"\u201d"}},8000)}q("#pageInfo").textContent="Birthday celebration"}else{q("#board").classList.remove("onbd");bp.hidden=true;delete bp.dataset.k;
+if(onBd){q("#board").classList.add("onbd");const p=bds[st.page-np];g.hidden=true;sw.hidden=true;bp.hidden=false;const k=p.id+"|"+(PH[p.id]?1:0)+"|"+[1,2,3,4].map(i=>PH["bday"+i]?1:0).join("");if(bp.dataset.k!==k){bp.dataset.k=k;bp.innerHTML=bdPageHTML(p,st.page);bdSetup(bp.querySelector("#bdtv"));bp.querySelectorAll("[data-bdup]").forEach(b=>b.onclick=()=>bdUpload(b.dataset.bdup));clearInterval(window.__bq);window.__bq=setInterval(()=>{const e=bp.querySelector(".bt-q");if(e&&!bp.hidden){e.style.animation="none";void e.offsetWidth;e.style.animation="";e.textContent="\u201c"+BDQ[Math.floor(Math.random()*BDQ.length)]+"\u201d"}},8000)}q("#pageInfo").textContent="Birthday celebration"}else{q("#board").classList.remove("onbd");bp.hidden=true;delete bp.dataset.k;
 if(!list.length){g.hidden=true;sw.hidden=false;sw.innerHTML='<div class="none">No targets entered for '+esc(period)+' yet.</div>';q("#pageInfo").textContent=""}
 else if(L.spot){g.hidden=true;sw.hidden=false;sw.innerHTML=slice.length?spotHTML(slice[0],all.length,dp(slice[0].dept),swap):"";q("#pageInfo").textContent="Agent "+(list.length?st.page+1:0)+" of "+list.length}
 else{sw.hidden=true;g.hidden=false;g.className="grid"+(L.stack?" stack":"")+(swap?" swap":"");if(L.stack){g.style.gridTemplateColumns="";g.style.gridTemplateRows=""}else{g.style.gridTemplateColumns="repeat("+L.c+",minmax(0,1fr))";g.style.gridTemplateRows="repeat("+L.r+",minmax(0,1fr))"}
@@ -1321,10 +1321,10 @@ const BDCSS=`
 @keyframes btfall{0%{transform:translateY(0) rotate(0)}100%{transform:translateY(112vh) rotate(720deg)}}
 #bdtv .bt-hero{position:absolute;left:50%;top:3vh;translate:-50% 0;width:46vw;text-align:center;display:flex;flex-direction:column;align-items:center;gap:1.6vh;animation:bthero 1s cubic-bezier(.2,.9,.3,1.2) both}
 @keyframes bthero{from{opacity:0;transform:scale(.8) translateY(4vh)}to{opacity:1;transform:none}}
-#bdtv .bt-h{font-weight:700;font-size:clamp(34px,9vh,120px);line-height:1;background:linear-gradient(90deg,#fff 30%,#ffd45c 50%,#fff 70%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:btshine 3.2s linear infinite;filter:drop-shadow(0 0 1.6vh rgba(255,200,80,.55))}
+#bdtv .bt-h{font-weight:700;font-size:clamp(34px,9vh,120px);line-height:1;background:linear-gradient(90deg,#fff 30%,var(--bta,#ffd45c) 50%,#fff 70%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:btshine 3.2s linear infinite;filter:drop-shadow(0 0 1.6vh rgba(255,200,80,.55))}
 @keyframes btshine{from{background-position:120% 0}to{background-position:-120% 0}}
-#bdtv .bt-ph{position:relative;width:min(31vh,22vw);height:min(31vh,22vw);border-radius:50%;padding:.9vh;background:conic-gradient(#ffd45c,#ff6fa5,#7cc4ff,#5fd7a2,#ffd45c);animation:btspin 6s linear infinite}
-#bdtv .bt-ph>*{display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:50%;object-fit:cover;object-position:50% 22%;animation:btspin 6s linear infinite reverse;font-weight:700;font-size:min(12vh,9vw);background:#4a2a8a}
+#bdtv .bt-ph{position:relative;width:calc(min(31vh,22vw)*var(--pz,1));height:calc(min(31vh,22vw)*var(--pz,1));border-radius:50%;padding:.9vh;background:conic-gradient(#ffd45c,#ff6fa5,#7cc4ff,#5fd7a2,#ffd45c);animation:btspin 6s linear infinite}
+#bdtv .bt-ph>*{display:flex;align-items:center;justify-content:center;width:100%;height:100%;border-radius:50%;object-fit:cover;object-position:50% 22%;animation:btspin 6s linear infinite reverse;font-weight:700;font-size:calc(min(12vh,9vw)*var(--pz,1));background:#4a2a8a}
 @keyframes btspin{to{transform:rotate(360deg)}}
 #bdtv .bt-n{font-weight:700;font-size:clamp(36px,9.5vh,130px);line-height:1;text-shadow:0 .6vh 2vh rgba(0,0,0,.35);animation:btpulse 2.4s ease-in-out infinite}
 @keyframes btpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
@@ -1343,9 +1343,58 @@ const BDCSS=`
 #bdtv.on .bt-x{opacity:1}
 #bdtv .bt-up{position:relative;z-index:6;border:0;border-radius:99px;padding:.8vh 1.8vh;background:rgba(0,0,0,.45);color:#fff;font:600 clamp(13px,2vh,20px) "Public Sans",Arial,sans-serif;cursor:pointer;opacity:0;transition:opacity .3s}
 #bdtv.on .bt-up,#bdPage:hover .bt-up,#bdtv .bt-up:focus-visible{opacity:1}
+#bdtv[data-fx="off"] .bl,#bdtv[data-fx="off"] .cf{display:none}
+#bdtv[data-lay="big"] .bt-pol,#bdtv[data-lay="slide"] .bt-pol{display:none;left:auto;right:auto;top:auto;bottom:auto;animation-delay:0s,1s}
+#bdtv[data-lay="big"] .bt-pol.sh,#bdtv[data-lay="slide"] .bt-pol.sh{display:block}
+#bdtv[data-lay="big"] .bt-pol.sh{width:min(25vw,46vh)}
+#bdtv[data-lay="big"] .bt-pol.sa{left:2.5vw;top:14vh;--r:-5deg}
+#bdtv[data-lay="big"] .bt-pol.sb{right:2.5vw;top:18vh;--r:5deg}
+#bdtv[data-lay="big"] .bt-hero{width:42vw}
+#bdtv[data-lay="big"] .bt-q{width:38vw}
+#bdtv[data-lay="slide"] .bt-pol.sh{width:min(34vw,62vh);right:6vw;top:50%;translate:0 -50%;--r:4deg}
+#bdtv[data-lay="slide"] .bt-hero{left:30%;width:46vw}
+#bdtv[data-lay="slide"] .bt-q{left:30%;width:44vw}
+#bdtv .bt-ctl{position:absolute;right:2vw;bottom:2vh;z-index:7;border:1px solid rgba(255,255,255,.35);border-radius:10px;padding:8px 16px;background:rgba(15,10,35,.6);color:#fff;font:600 15px "Public Sans",Arial,sans-serif;cursor:pointer;opacity:0;transition:opacity .3s;backdrop-filter:blur(6px)}
+#bdtv.on .bt-ctl,#bdtv.bt-open .bt-ctl,#bdtv .bt-ctl:focus-visible{opacity:1}
+#bdtv.bt-open{cursor:default}
+#bdtv .bt-pn{position:absolute;right:2vw;bottom:calc(2vh + 52px);z-index:8;width:min(340px,92vw);max-height:76vh;overflow:auto;padding:14px 16px;border-radius:14px;background:rgba(15,10,35,.9);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2);color:#fff;font:14px/1.4 "Public Sans",Arial,sans-serif;cursor:default;text-align:left}
+#bdtv .bt-pn h4{margin:0 0 6px;font-size:16px}
+#bdtv .bt-pn label{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:9px 0}
+#bdtv .bt-pn select{width:auto;margin:0;background:#2a2250;color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:5px 8px;font:inherit}
+#bdtv .bt-pn input{width:auto;margin:0}
+#bdtv .bt-th{margin:12px 0 6px}
+#bdtv .bt-sws{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+#bdtv .bt-sw{width:100%;max-width:38px;height:auto;aspect-ratio:1;justify-self:center;border-radius:50%;border:2px solid rgba(255,255,255,.35);cursor:pointer;padding:0}
+#bdtv .bt-sw[aria-pressed="true"]{border-color:#fff;box-shadow:0 0 0 2px var(--bta,#ffd45c)}
+#bdtv .bt-rw{display:flex;gap:8px;margin:14px 0 8px}
+#bdtv .bt-rw button,#bdtv .bt-cl{flex:1;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:7px;background:rgba(255,255,255,.1);color:#fff;font:600 14px "Public Sans",Arial,sans-serif;cursor:pointer}
+#bdtv .bt-cl{width:100%}
 @media (max-width:800px){#bdtv .bt-hero{width:92vw;top:6vh}#bdtv .bt-q{width:88vw}#bdtv .bt-pol{width:24vw;opacity:.9}#bdtv .pa{top:1vh;left:1vw}#bdtv .pb{top:1vh;right:1vw}#bdtv .pc{bottom:14vh;left:2vw}#bdtv .pd{bottom:14vh;right:2vw}}
+@media (max-width:800px){#bdtv[data-lay="big"] .bt-hero,#bdtv[data-lay="slide"] .bt-hero{left:50%;width:92vw}#bdtv[data-lay="big"] .bt-q,#bdtv[data-lay="slide"] .bt-q{left:50%;width:88vw}#bdtv[data-lay="big"] .bt-pol.sh,#bdtv[data-lay="slide"] .bt-pol.sh{width:30vw}#bdtv[data-lay="slide"] .bt-pol.sh{right:2vw;top:auto;bottom:14vh;translate:none}}
 @media (prefers-reduced-motion:reduce){#bdtv *,#bdtv .bt-bg{animation:none !important}}
 `;
+const BDTH=[{k:"party",n:"Party",c:["#1b1147","#3b1a6b","#7a2a78","#ffc445","#ff5a8c","#ffd45c"]},{k:"sunset",n:"Sunset",c:["#3a0f4d","#b0305f","#ff8a4c","#ffd166","#ff5a8c","#ffe08a"]},{k:"ocean",n:"Ocean",c:["#04243f","#0b5d82","#12a4a6","#7fe8ff","#2ee6c9","#9ff3ff"]},{k:"forest",n:"Forest",c:["#06281c","#0f5a3a","#3d8f4a","#c8f07a","#5fd7a2","#d6f58c"]},{k:"royal",n:"Royal gold",c:["#0a1236","#1b2f7a","#3a2a78","#ffd45c","#7c9bff","#ffd45c"]},{k:"rose",n:"Rose",c:["#3d0a2b","#a3235f","#ff6f91","#ffc2d6","#ff8fb1","#ffd0e0"]},{k:"midnight",n:"Midnight",c:["#03060f","#0b1630","#1c2c5e","#4f7bff","#7c5cff","#9cc3ff"]},{k:"candy",n:"Candy",c:["#5a1a8f","#d6339f","#ff8f5a","#7cf0ff","#ffe066","#fff08a"]},{k:"neon",n:"Neon",c:["#05030f","#190a3a","#3a0a4f","#00f0ff","#ff2bd6","#5cf6ff"]},{k:"aurora",n:"Aurora",c:["#04161f","#0d4a5a","#4a2a8a","#5fffc0","#9a6bff","#aaffe0"]}];
+const BDTHCSS=BDTH.map(t=>{const c=t.c;return '#bdtv[data-bt="'+t.k+'"]{--bta:'+c[5]+'}#bdtv[data-bt="'+t.k+'"] .bt-bg{background:radial-gradient(circle at 20% 20%,'+c[3]+'59,transparent 45%),radial-gradient(circle at 85% 80%,'+c[4]+'66,transparent 50%),linear-gradient(135deg,'+c[0]+','+c[1]+' 50%,'+c[2]+');background-size:140% 140%}'}).join("\n");
+const BDCDEF={lay:"frames",th:"party",secs:6,fx:true,pz:1};
+function bdCfg(){let c={};try{c=JSON.parse(localStorage.getItem("bd:cfg")||"{}")||{}}catch(e){}return Object.assign({},BDCDEF,c)}
+function bdSave(c){try{localStorage.setItem("bd:cfg",JSON.stringify(c))}catch(e){}}
+function bdSetup(root){if(!root)return;const c=bdCfg();let idx=0,paused=false;
+const figs=()=>Array.prototype.slice.call(root.querySelectorAll(".bt-pol")),step=()=>c.lay==="big"?2:1;
+function tick(){const f=figs(),n=f.length;f.forEach(x=>x.classList.remove("sh","sa","sb"));if(c.lay==="frames"||!n)return;const at=i=>f[((i%n)+n)%n];at(idx).classList.add("sh","sa");if(c.lay==="big"&&n>1)at(idx+1).classList.add("sh","sb")}
+function timer(){clearInterval(root.__t);root.__t=0;if(c.lay!=="frames"&&!paused&&figs().length>1)root.__t=setInterval(()=>{if(!root.isConnected){clearInterval(root.__t);return}idx+=step();tick()},Math.max(2,+c.secs||6)*1000)}
+const btn=document.createElement("button");btn.type="button";btn.className="bt-ctl";btn.textContent="Controls";
+const pn=document.createElement("div");pn.className="bt-pn";pn.hidden=true;
+const sel=(k,a)=>'<select data-k="'+k+'">'+a.map(o=>'<option value="'+o[0]+'">'+o[1]+'</option>').join("")+'</select>';
+pn.innerHTML='<h4>Birthday controls</h4><label>Photo layout'+sel("lay",[["frames","Small frames"],["big","Big frames"],["slide","One by one, large"]])+'</label><label>Change photo every'+sel("secs",[[3,"3 seconds"],[5,"5 seconds"],[8,"8 seconds"],[12,"12 seconds"],[20,"20 seconds"]])+'</label><label>Name photo size'+sel("pz",[[1,"Normal"],[1.3,"Large"],[1.55,"Extra large"]])+'</label><label>Balloons and confetti<input type="checkbox" data-k="fx"></label><div class="bt-th">Theme</div><div class="bt-sws">'+BDTH.map(t=>'<button type="button" class="bt-sw" data-th="'+t.k+'" title="'+t.n+'" aria-label="'+t.n+' theme" aria-pressed="false" style="background:linear-gradient(135deg,'+t.c[0]+','+t.c[1]+' 50%,'+t.c[2]+')"></button>').join("")+'</div><div class="bt-rw"><button type="button" data-a="prev">Previous</button><button type="button" data-a="pause">Pause</button><button type="button" data-a="next">Next</button></div><button type="button" class="bt-cl" data-a="close">Close</button>';
+function sync(){pn.querySelectorAll("select[data-k]").forEach(x=>x.value=String(c[x.dataset.k]));pn.querySelector("input[data-k=fx]").checked=!!c.fx;pn.querySelectorAll("[data-th]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.th===c.th)));pn.querySelector("[data-a=pause]").textContent=paused?"Resume":"Pause"}
+function apply(){root.dataset.bt=c.th;root.dataset.lay=c.lay;root.dataset.fx=c.fx?"on":"off";root.style.setProperty("--pz",c.pz);tick();timer();sync()}
+const wake=()=>{root.classList.add("on");clearTimeout(root.__w);root.__w=setTimeout(()=>{if(pn.hidden)root.classList.remove("on")},3000)};
+pn.onchange=e=>{const t=e.target,k=t.dataset.k;if(!k)return;c[k]=k==="fx"?t.checked:(k==="lay"?t.value:+t.value);bdSave(c);apply()};
+pn.onclick=e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.th){c.th=b.dataset.th;bdSave(c);apply();return}const a=b.dataset.a;if(a==="prev"){idx-=step();tick();timer()}else if(a==="next"){idx+=step();tick();timer()}else if(a==="pause"){paused=!paused;timer();sync()}else if(a==="close"){pn.hidden=true;btn.textContent="Controls";root.classList.remove("bt-open")}};
+btn.onclick=()=>{pn.hidden=!pn.hidden;btn.textContent=pn.hidden?"Controls":"Close";root.classList.toggle("bt-open",!pn.hidden);wake()};
+root.appendChild(pn);root.appendChild(btn);
+root.addEventListener("mousemove",wake);root.addEventListener("touchstart",wake,{passive:true});
+apply();wake()}
 function bdResize(f,max){max=max||900;return new Promise((res,rej)=>{const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);let q=.82,d=c.toDataURL("image/jpeg",q);while(d.length>700000&&q>.35){q-=.1;d=c.toDataURL("image/jpeg",q)}res(d)};im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("bad image"))};im.src=u})}
 function bdBirthdays(){const act=S.emps.filter(e=>e.status!=="Resigned"&&e.dob),out=[];for(let d=0;d<1;d++){const t=new Date();t.setDate(t.getDate()+d);const k=String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");act.forEach(e=>{if(String(e.dob).slice(5,10)===k)out.push({id:e.id,name:e.name,d})})}return out}
 let BDT=[],BDFS=false;
@@ -1358,8 +1407,8 @@ bdClose();const imgs=[1,2,3,4].map(i=>PH["bday"+i]).filter(Boolean),pos=["pa","p
 let fx="";for(let i=0;i<12;i++)fx+='<i class="bl" style="left:'+((i*83+5)%92)+'%;--c:'+C[i%C.length]+';--s:'+(7+i%4*1.5)+';--t:'+(14+i%5*2)+'s;--d:-'+((i*3.1)%16).toFixed(1)+'s"></i>';
 for(let i=0;i<40;i++)fx+='<i class="cf" style="left:'+((i*29+7)%98)+'%;background:'+C[i%C.length]+';--w:'+(5+i%6)+'s;--d:-'+((i*1.7)%9).toFixed(1)+'s"></i>';
 const el=document.createElement("div");el.id="bdtv";el.setAttribute("role","dialog");el.setAttribute("aria-label","Birthday celebration");
-el.innerHTML='<style>'+BDCSS+'</style><div class="bt-bg"></div>'+fx+imgs.map((d,i)=>'<figure class="bt-pol '+pos[i]+'" style="margin:0"><img src="'+d+'" alt=""></figure>').join("")+'<div class="bt-hero" id="btHero"></div><div class="bt-q" id="btQ"></div><button class="bt-x" type="button" aria-label="Close">\u00d7</button>';
-document.body.appendChild(el);
+el.innerHTML='<style>'+BDCSS+BDTHCSS+'</style><div class="bt-bg"></div>'+fx+imgs.map((d,i)=>'<figure class="bt-pol '+pos[i]+'" style="margin:0"><img src="'+d+'" alt=""></figure>').join("")+'<div class="bt-hero" id="btHero"></div><div class="bt-q" id="btQ"></div><button class="bt-x" type="button" aria-label="Close">\u00d7</button>';
+document.body.appendChild(el);bdSetup(el);
 let pi=0,qi=Math.floor(Math.random()*BDQ.length);
 const ini=n=>String(n).split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
 function hero(){const p=L[pi%L.length],h=p.d===0?"Happy Birthday!":"Birthday "+(p.d===1?"tomorrow":"in "+p.d+" days"),ph=PH[p.id];
@@ -1374,7 +1423,7 @@ function bdPageHTML(p,seed){const C=["#ffd45c","#ff6f91","#4fd1c5","#7cc4ff","#b
 let fx="";for(let i=0;i<12;i++)fx+='<i class="bl" style="left:'+((i*83+5)%92)+'%;--c:'+C[i%C.length]+';--s:'+(7+i%4*1.5)+';--t:'+(14+i%5*2)+'s;--d:-'+((i*3.1)%16).toFixed(1)+'s"></i>';
 for(let i=0;i<40;i++)fx+='<i class="cf" style="left:'+((i*29+7)%98)+'%;background:'+C[i%C.length]+';--w:'+(5+i%6)+'s;--d:-'+((i*1.7)%9).toFixed(1)+'s"></i>';
 const ini=String(p.name).split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase(),ph=PH[p.id];
-return '<style>'+BDCSS+'</style><div id="bdtv" style="position:absolute;inset:0;z-index:0"><div class="bt-bg"></div>'+fx+imgs.map((d,i)=>'<figure class="bt-pol '+pos[i]+'" style="margin:0"><img src="'+d+'" alt=""></figure>').join("")+'<div class="bt-hero"><div class="bt-h">Happy Birthday!</div><div class="bt-ph">'+(ph?'<img src="'+ph+'" alt="">':'<span>'+esc(ini)+'</span>')+'</div><button type="button" class="bt-up" data-bdup="'+esc(p.id)+'">'+(ph?"Change photo":"Upload photo")+'</button><div class="bt-n">'+esc(p.name)+'</div><div class="bt-s">Wishing you a wonderful year ahead, from all of us</div></div><div class="bt-q">\u201c'+BDQ[(new Date().getDate()+(seed||0))%BDQ.length]+'\u201d</div></div>'}
+return '<style>'+BDCSS+BDTHCSS+'</style><div id="bdtv" style="position:absolute;inset:0;z-index:0"><div class="bt-bg"></div>'+fx+imgs.map((d,i)=>'<figure class="bt-pol '+pos[i]+'" style="margin:0"><img src="'+d+'" alt=""></figure>').join("")+'<div class="bt-hero"><div class="bt-h">Happy Birthday!</div><div class="bt-ph">'+(ph?'<img src="'+ph+'" alt="">':'<span>'+esc(ini)+'</span>')+'</div><button type="button" class="bt-up" data-bdup="'+esc(p.id)+'">'+(ph?"Change photo":"Upload photo")+'</button><div class="bt-n">'+esc(p.name)+'</div><div class="bt-s">Wishing you a wonderful year ahead, from all of us</div></div><div class="bt-q">\u201c'+BDQ[(new Date().getDate()+(seed||0))%BDQ.length]+'\u201d</div></div>'}
 function bdUpload(id,after){const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=async()=>{const f=i.files&&i.files[0];if(!f)return;try{const d=await phResize(f);await setDoc(doc(db,"photos",id),{d,at:Date.now()});PH[id]=d;toast("Photo saved");if(after)after()}catch(x){console.error(x);toast(x&&x.code==="permission-denied"?"Could not save the photo. Publish the updated Firestore rules first.":"Could not save the photo")}};i.click()}
 function bdPhotos(){const old=document.getElementById("bdph");if(old)old.remove();
 const o=document.createElement("div");o.id="bdph";o.style.cssText="position:fixed;inset:0;z-index:2147482000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px";
