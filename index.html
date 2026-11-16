@@ -679,6 +679,17 @@ button,select,input{font:inherit;color:inherit}
 .sstats b{font-family:'Barlow Condensed','Arial Narrow',Impact,sans-serif;font-weight:700;font-size:clamp(32px,8.6vh,112px);line-height:1;display:block;white-space:nowrap}
 .sstats .a{color:var(--good)} .sstats .p{color:var(--warn)}
 
+/* clean full-screen mode: no headings, card fills the screen */
+#board.fs .top,#board.fs .chips,#board.fs .chips2,#board.fs .foot{display:none}
+#board.fs .spot{--ph:min(50vh,26vw);padding:3vh 3vw}
+#board.fs .sname{font-size:clamp(46px,16.5vh,230px)}
+#board.fs .sdept{font-size:clamp(26px,7.2vh,92px)}
+#board.fs .ssub{font-size:clamp(20px,4.5vh,58px)}
+#board.fs .ring{width:clamp(140px,25vh,320px)}
+#board.fs .sstats span{font-size:clamp(22px,5vh,64px)}
+#board.fs .sstats b{font-size:clamp(38px,10.2vh,136px)}
+#board.fs .sroad{height:12vh;width:min(100%,90vh)}
+
 /* toolbar */
 .toolbar{position:fixed;z-index:5;display:flex;gap:8px;transition:opacity .3s;max-width:calc(100vw - 20px)}
 .toolbar[data-corner="br"]{right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));flex-direction:column-reverse;align-items:flex-end}
@@ -818,6 +829,7 @@ button,select,input{font:inherit;color:inherit}
       <select id="sortSel" aria-label="Sort by"><option value="pct">Sort: achievement %</option><option value="name">Sort: name</option><option value="dept">Sort: team</option><option value="target">Sort: target</option></select>
       <select id="viewSel" aria-label="View"><option value="grid">View: all agents</option><option value="spot">View: one agent at a time</option></select>
       <select id="crownSel" aria-label="Crowns"><option value="off">Crowns: off</option><option value="1">Crowns: top 1</option><option value="3">Crowns: top 3</option><option value="100">Crowns: everyone at 100%+</option></select>
+      <select id="hdSel" aria-label="Headings"><option value="auto">Headings: hide after 10 sec</option><option value="show">Headings: always show</option><option value="hide">Headings: always hide</option></select>
       <select id="thSel" aria-label="Theme"><option value="classic">Theme: Classic</option><option value="showroom">Theme: Showroom</option><option value="racing">Theme: Racing</option><option value="sunset">Theme: Sunset highway</option><option value="night">Theme: Night city</option></select>
       <select id="perSel" aria-label="Agents per page"><option value="6">6 per page</option><option value="8">8 per page</option><option value="10">10 per page</option><option value="12">12 per page</option><option value="15">15 per page</option><option value="20">20 per page</option></select>
       <select id="secSel" aria-label="Seconds per page"><option value="5">5 sec</option><option value="8">8 sec</option><option value="10">10 sec</option><option value="15">15 sec</option><option value="20">20 sec</option><option value="30">30 sec</option></select>
@@ -830,11 +842,11 @@ button,select,input{font:inherit;color:inherit}
     </div>
   </div>
 </section>`;
-const st={sort:"pct",perPage:10,secs:10,dept:"All",sub:"All",page:0,paused:false,pages:1,view:"spot",crown:"3",th:"classic"};
-try{const d=JSON.parse(localStorage.getItem("tpb:portal")||"null");if(d){st.sort=d.sort||st.sort;st.perPage=d.per||st.perPage;st.secs=d.secs||st.secs;st.view=d.view||st.view;st.crown=d.crown||st.crown;st.th=d.th||st.th}}catch(e){}
+const st={sort:"pct",perPage:10,secs:10,dept:"All",sub:"All",page:0,paused:false,pages:1,view:"spot",crown:"3",th:"classic",hd:"auto"};
+try{const d=JSON.parse(localStorage.getItem("tpb:portal")||"null");if(d){st.sort=d.sort||st.sort;st.perPage=d.per||st.perPage;st.secs=d.secs||st.secs;st.view=d.view||st.view;st.crown=d.crown||st.crown;st.th=d.th||st.th;st.hd=d.hd||st.hd}}catch(e){}
 let host=null,root=null,timer=null,idleT=null,members=[],period="",title="",live=false;
 const q=s=>root.querySelector(s);
-const save=()=>{try{localStorage.setItem("tpb:portal",JSON.stringify({sort:st.sort,per:st.perPage,secs:st.secs,view:st.view,crown:st.crown,th:st.th}))}catch(e){}};
+const save=()=>{try{localStorage.setItem("tpb:portal",JSON.stringify({sort:st.sort,per:st.perPage,secs:st.secs,view:st.view,crown:st.crown,th:st.th,hd:st.hd}))}catch(e){}};
 const nf=new Intl.NumberFormat("en-IN"),cf=new Intl.NumberFormat("en-IN",{notation:"compact",maximumFractionDigits:1});
 const fmt=n=>Math.abs(n)>=100000?cf.format(n):nf.format(n),fmtFull=n=>Math.abs(n)>=1e8?cf.format(n):nf.format(n);
 const initials=n=>{const p=String(n).trim().split(/\s+/);return ((p[0]||"")[0]||"").toUpperCase()+((p.length>1?p[p.length-1][0]:"")||"").toUpperCase()};
@@ -879,14 +891,15 @@ let h=slice.map(cardHTML).join("");if(!L.stack)for(let i=slice.length;i<L.per;i+
 const start=Number.isFinite(L.per)?st.page*L.per+1:1,end=Number.isFinite(L.per)?start+slice.length-1:list.length;
 q("#pageInfo").textContent="Showing "+(list.length?start:0)+"\u2013"+end+" of "+list.length+" agents"+(pages>1?"  \u00b7  Page "+(st.page+1)+" of "+pages:"")}}
 let d="";if(pages>1&&pages<=12)for(let j=0;j<pages;j++)d+='<i class="'+(j===st.page?"on":"")+'"></i>';q("#dots").innerHTML=d;
-q("#sortSel").value=st.sort;q("#perSel").value=String(st.perPage);q("#secSel").value=String(st.secs);q("#viewSel").value=st.view;q("#crownSel").value=st.crown;q("#thSel").value=st.th;q("#board").dataset.th=st.th;{const sc=q("#scene");if(sc&&!sc.firstChild)sc.innerHTML='<i class="rd"></i><span class="dr d1">'+CARSVG+'</span><span class="dr d2">'+CARSVG+'</span><span class="dr d3">'+CARSVG+'</span>'}q("#perSel").disabled=!!L.spot;q("#pauseBtn").textContent=st.paused?"Resume":"Pause";
+q("#sortSel").value=st.sort;q("#perSel").value=String(st.perPage);q("#secSel").value=String(st.secs);q("#viewSel").value=st.view;q("#crownSel").value=st.crown;q("#thSel").value=st.th;q("#hdSel").value=st.hd;q("#board").dataset.th=st.th;{const sc=q("#scene");if(sc&&!sc.firstChild)sc.innerHTML='<i class="rd"></i><span class="dr d1">'+CARSVG+'</span><span class="dr d2">'+CARSVG+'</span><span class="dr d3">'+CARSVG+'</span>'}q("#perSel").disabled=!!L.spot;q("#pauseBtn").textContent=st.paused?"Resume":"Pause";
 q("#ptSel").value=tgt;const per=tgPer();q("#pcell").innerHTML=tgt==="m"?'<input type="month" id="pmSel" value="'+tgMonth()+'" aria-label="Month">':'<select id="ppSel" aria-label="Period">'+perOpts().map(o=>'<option value="'+o[0]+'"'+(o[0]===per.key?" selected":"")+'>'+esc(o[1])+'</option>').join("")+'</select>';
 if(swap||!CUonce){CUonce=true;countUp()}
 schedule(keep)}
 function schedule(keep){if(keep&&timer&&!st.paused&&st.pages>1)return;clearTimeout(timer);timer=null;const bar=q("#timerBar");bar.classList.remove("run");bar.style.animationDuration="";if(st.pages>1&&!st.paused){void bar.offsetWidth;bar.style.animationDuration=st.secs+"s";bar.classList.add("run");timer=setTimeout(()=>{timer=null;go(1)},st.secs*1000)}}
 function go(d){st.page=(st.page+d+st.pages)%st.pages;render(true)}
 function update(){if(!live)return;gather();render(false,true)}
-function wake(){const b=q("#board");b.classList.remove("idle");clearTimeout(idleT);idleT=setTimeout(()=>{if(q("#panel").hidden)b.classList.add("idle")},10000)}
+function applyHd(){const b=q("#board");b.classList.toggle("fs",st.hd==="hide"||(st.hd==="auto"&&b.classList.contains("idle")))}
+function wake(){const b=q("#board");b.classList.remove("idle");applyHd();clearTimeout(idleT);idleT=setTimeout(()=>{if(q("#panel").hidden){b.classList.add("idle");applyHd()}},10000)}
 function setPanel(open){q("#panel").hidden=!open;q("#ctlBtn").setAttribute("aria-expanded",String(open));q("#ctlBtn").textContent=open?"Close":"Controls";wake()}
 function setCorner(c){q("#toolbar").setAttribute("data-corner",c);q("#cornerSel").value=c;try{localStorage.setItem("tpb:corner",c)}catch(e){}}
 function toggleFS(){try{if(document.fullscreenElement){document.exitFullscreen()}else if(document.documentElement.requestFullscreen){document.documentElement.requestFullscreen().catch(()=>{alert("Full screen is blocked here. Press F11 in the browser instead.")})}else alert("Press F11 in the browser to go full screen.")}catch(e){alert("Press F11 in the browser to go full screen.")}}
@@ -901,6 +914,7 @@ q("#perSel").addEventListener("change",e=>{st.perPage=+e.target.value;st.page=0;
 q("#secSel").addEventListener("change",e=>{st.secs=+e.target.value;save();schedule()});
 q("#viewSel").addEventListener("change",e=>{st.view=e.target.value;st.page=0;save();render(true)});
 q("#crownSel").addEventListener("change",e=>{st.crown=e.target.value;save();render(false,true)});
+q("#hdSel").addEventListener("change",e=>{st.hd=e.target.value;save();applyHd();wake()});
 q("#thSel").addEventListener("change",e=>{st.th=e.target.value;save();render(false,true)});
 q("#ptSel").addEventListener("change",e=>{tgt=e.target.value;st.page=0;update()});
 q("#pcell").addEventListener("change",e=>{const t=e.target;if(t.id==="pmSel")tgm=t.value||"";else if(t.id==="ppSel"){if(tgt==="q")tgq=t.value;else tgy=t.value}st.page=0;update()});
