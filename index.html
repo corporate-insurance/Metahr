@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Meta Fintech Portal</title>
+<title>Apna Portal</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231f5fe0'/%3E%3Cstop offset='1' stop-color='%230a9f8f'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Ctext x='32' y='45' font-size='34' text-anchor='middle'%3E%F0%9F%9A%97%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Public+Sans:wght@400;500;600&display=swap">
 <style>
@@ -50,6 +50,7 @@ body{font-size:15px}
 nav{position:sticky;top:0;z-index:20;flex-direction:row;align-items:center;gap:2px;overflow-x:auto;padding:6px 8px;border-right:0;border-bottom:1px solid var(--line);scrollbar-width:none}
 nav::-webkit-scrollbar,.tabs::-webkit-scrollbar{display:none}
 .brand{display:none}
+#cosw{flex-direction:row;flex:0 0 auto;margin:0 6px 0 0;padding:0;border:0}#cosw div{white-space:nowrap;padding:9px 11px}
 nav button{white-space:nowrap;padding:10px 13px;flex:0 0 auto}
 #out{margin-top:0;margin-left:auto}
 main{padding:16px 12px 40px}
@@ -99,8 +100,10 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}input[type=num
 @media (prefers-color-scheme:dark){:root{--bg:#0a1226;--sf:#121c36;--ink:#e9f0ff;--mute:#a3b4d6;--line:#24345a;--ac:#6aa5ff;--aci:#06122b;--thb:#18254a;--sh:0 8px 22px rgba(0,0,0,.35)}}
 body{background:radial-gradient(1100px 480px at 92% -8%,rgba(15,181,166,.16),transparent 70%),radial-gradient(900px 480px at -8% 108%,rgba(255,176,32,.14),transparent 70%),var(--bg);background-attachment:fixed}
 nav{background:linear-gradient(180deg,#0b2a5b 0%,#123f8f 55%,#0a7f9e 100%);border-right:0}
-.brand{color:#fff;line-height:1.25}.brand::after{content:"Car loans \00B7 Refinance \00B7 Top-up";display:block;margin-top:3px;font:500 11px "Public Sans",sans-serif;letter-spacing:.3px;color:#ffd37a}
+.brand{color:#fff;line-height:1.25}.brand::after{content:"Meta Fintech \00B7 Apna Insurance";display:block;margin-top:3px;font:500 11px "Public Sans",sans-serif;letter-spacing:.3px;color:#ffd37a}
 nav button{color:#d6e4ff}nav button::before{display:inline-block;width:1.6em;margin-right:4px}
+#cosw{display:flex;flex-direction:column;gap:6px;margin:0 0 12px;padding:0 0 12px;border-bottom:1px solid rgba(255,255,255,.2)}#cosw[hidden]{display:none}
+#cosw div{cursor:pointer;padding:9px 12px;border-radius:8px;color:#d6e4ff;font-weight:600;border:1px solid rgba(255,255,255,.25);user-select:none}#cosw div:hover{background:rgba(255,255,255,.13);color:#fff}#cosw div[aria-current=true]{background:#fff;color:#0b2a6b;border-color:#fff}
 nav button:hover{background:rgba(255,255,255,.13);color:#fff}
 nav button[aria-current=true]{background:linear-gradient(135deg,#ffd35a,#ff9f1c);color:#2b1a00;font-weight:600;box-shadow:0 4px 12px rgba(255,159,28,.35)}
 nav button[data-v=dash]::before{content:"\1F4CA"}nav button[data-v=list]::before{content:"\1F465"}nav button[data-v=rep]::before{content:"\1F5C2"}nav button[data-v=log]::before{content:"\1F4DD"}nav button[data-v=lv]::before{content:"\1F3D6"}nav button[data-v=hol]::before{content:"\1F389"}nav button[data-v=cu]::before{content:"\1F697"}nav button[data-v=dl]::before{content:"\1F3E2"}nav button[data-v=tg]::before{content:"\1F3AF"}nav button[data-v=lb]::before{content:"\1F3C6"}nav button[data-v=act]::before{content:"\1F4E3"}nav button[data-v=users]::before{content:"\1F510"}nav button[data-v=out]::before{content:"\1F6AA"}
@@ -127,7 +130,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--ac);box-shadow:0 0 0 
 </style>
 </head>
 <body>
-<div class="app"><nav aria-label="Main"><div class="brand"><img class="logo" src="logo.png" alt="" onerror="this.remove()">Meta Fintech Portal</div>
+<div class="app"><nav aria-label="Main"><div class="brand"><img class="logo" src="logo.png" alt="" onerror="this.remove()">Apna Portal</div>
+<div id="cosw" hidden><div role="button" tabindex="0" data-co="meta">1. Meta Fintech</div><div role="button" tabindex="0" data-co="ins">2. Apna Insurance</div></div>
 <button data-v="dash">Dashboard</button><button data-v="list">Employees</button><button data-v="rep">Reports and backup</button><button data-v="log">Activity log</button><button data-v="lv">Leave requests</button><button data-v="hol">Holidays</button><button data-v="cu">Customers</button><button data-v="dl">Dealers</button><button data-v="tg">Targets</button><button data-v="lb">Leaderboard</button><button data-v="act">Activity tracker</button><button data-v="users">Users</button><button data-v="out" id="out">Sign out</button></nav>
 <main id="main"></main></div>
 <div id="slip"></div><div id="toast" role="status"></div>
@@ -332,6 +336,7 @@ train:{t:"Training",f:[["name","Training","text"],["date","Completed on","date"]
 notes:{t:"Warnings and notes",f:[["date","Date","date"],["note","Note","text"],["file","Attach file (PDF or image, up to 5 MB)","file"],["link","Or paste a Google Drive link instead","url"]]}};
 const ONB=["Documents collected","KYC and background check done","ID card issued","System access given","Training completed","Offer letter signed"];
 const EXIT=["Resignation accepted","Handover done","Assets returned","Final settlement paid","Experience letter issued"];
+let co="meta";try{co=localStorage.getItem("pCo")==="ins"?"ins":"meta"}catch(e){}
 let v="dash",cur=null,tab="details",q="",ft="",fk="",nh="",tgm="",rmf="",lbn=10,tgt="m",tgq="",tgy="";
 let editing=false;
 {const ic=document.querySelector("link[rel=icon]"),im=new Image();im.onload=()=>{ic.href="logo.png"};im.src="logo.png"}
@@ -1296,6 +1301,9 @@ const old=CUe&&cuGet(CUe),id=CUe||("c"+Date.now().toString(36)+Math.random().toS
 if(!r.sl)r.sl=cuNextSl();const rec={...(old||{}),...r,id,by:old&&old.by?old.by:me,at:old&&old.at?old.at:Date.now(),upd:Date.now()};
 try{await setDoc(doc(db,"cust",id),rec);log((old?"Updated":"Added")+" customer record "+r.name);toast(r.status==="Disbursed"&&r.disb>=AUTO_FROM&&!r.tc&&!r.fos?"Saved. No Telecaller or FOS was entered, so no target was updated":"Customer saved");CUe=null;if(!old)cuCount();if(CUm)await cuFind();render()}catch(x){console.error(x);toast(x&&x.code==="permission-denied"?"No permission. Add the customers rule in Firestore and publish it.":"Could not save. Check your internet and try again.")}}}
 document.addEventListener("wheel",()=>{const a=document.activeElement;if(a&&a.type==="number")a.blur()},{passive:true});
+function insV(){return '<div class="panel" style="max-width:520px;margin:40px auto;text-align:center"><h1>Apna Insurance</h1><p style="font-size:40px;margin:8px 0">🛠️</p><p class="sub"><b>Under update</b></p><p class="mute">This section is being built and will be available soon.</p></div>'}
+function setCo(c){co=c;try{localStorage.setItem("pCo",c)}catch(e){}render()}
+document.querySelectorAll("#cosw [data-co]").forEach(el=>{el.onclick=()=>setCo(el.dataset.co);el.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setCo(el.dataset.co)}}});
 function render(){if(me&&meP&&loaded)cuAuto();$(".app").classList.toggle("out",!me);if(!me){document.documentElement.classList.remove("bdwait");$("#main").innerHTML=loginV();bind();return}$("#out").textContent="Sign out ("+me+")";
 if(boardMode&&meP&&!canTgt()){boardMode=false;document.documentElement.classList.remove("bdwait");try{setPersistence(auth,browserSessionPersistence)}catch(x){}}
 if(boardMode&&!loaded)document.documentElement.classList.add("bdwait");
@@ -1306,6 +1314,8 @@ if(TB.isLive())TB.hide();
 if(meP&&meP.role==="Marketing"){$$("nav button").forEach(x=>x.style.display=x.id==="out"?"":"none");if(!$("#abox"))mkApp();return}
 if(isTL()&&v!=="tg"&&v!=="lb"&&v!=="cu"&&v!=="dl"&&!(v==="act"&&!isOps()))v="tg";
 const HRHIDE=["tg","lb","act","users"],hideHR=!!meP&&meP.role==="HR";if(hideHR&&HRHIDE.includes(v))v="dash";const isAd=!!meP&&meP.role==="Admin";if(!isAd&&v==="rep")v="dash";
+{const cs=$("#cosw");if(cs){cs.hidden=!isAd;if(!isAd)co="meta";cs.querySelectorAll("[data-co]").forEach(x=>x.setAttribute("aria-current",String(x.dataset.co===co)))}}
+if(isAd&&co==="ins"){$$("nav button").forEach(b=>{b.style.display=b.id==="out"?"":"none"});$("#main").innerHTML=insV();bind();return}
 $$("nav button").forEach(b=>{b.setAttribute("aria-current",b.dataset.v===(v==="prof"?"list":v));b.style.display=(isTL()&&b.id!=="out"&&b.dataset.v!=="tg"&&b.dataset.v!=="lb"&&b.dataset.v!=="cu"&&b.dataset.v!=="dl"&&b.dataset.v!=="act")||(b.dataset.v==="act"&&!fullEdit()&&!isTL())||(hideHR&&HRHIDE.includes(b.dataset.v))||(b.dataset.v==="rep"&&!isAd)||(isOps()&&b.dataset.v==="act")?"none":""});
 $("#main").innerHTML=({dash,list,prof,rep,log:logv,users:usersV,lv:lvV,hol:holV,cu:cuV,dl:dlV,tg:tgV,lb:lbV,act:actV})[v]();bind()}
 const BDQ=["Another year older, another year wiser, and always a joy to work with.","Your hard work and your smile make our team brighter every single day.","May every road ahead be smooth and every goal turn into a green signal.","Wishing you a year of big wins, bigger smiles and zero pending targets.","Here is to a year full of growth, success and well-earned celebrations.","Success is a journey, not a destination. Enjoy the ride, and happy birthday!","Great teams are built on great people. Thank you for being one of ours.","May your year be full of green lights, open roads and happy moments.","Your dedication drives us forward. Have a wonderful birthday!","Cheers to you. Today is your day to shine.","Wishing you health, happiness and a year that goes exactly as planned.","Another lap around the sun, and you are still the heart of our team."];
