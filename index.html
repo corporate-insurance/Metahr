@@ -750,9 +750,9 @@ button,select,input{font:inherit;color:inherit}
 @keyframes twk{0%,100%{transform:scale(0);opacity:0}50%{transform:scale(1.5);opacity:1}}
 .card.crowned::after,.spot.crowned::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 0 28px var(--k);animation:glow 2.2s ease-in-out infinite}
 @keyframes glow{0%,100%{opacity:.2}50%{opacity:.8}}
-.card.k1::before,.spot.k1::before{content:"";position:absolute;top:0;bottom:0;width:30%;left:-40%;background:linear-gradient(100deg,transparent,rgba(246,196,69,.35),transparent);transform:skewX(-18deg);animation:sweep 4s ease-in-out infinite;pointer-events:none;z-index:2}
+.card.k1::before,.spot.k1::before{content:"";position:absolute;top:0;bottom:0;width:30%;left:-40%;background:linear-gradient(100deg,transparent,rgba(90,175,255,.38),transparent);transform:skewX(-18deg);animation:sweep 4s ease-in-out infinite;pointer-events:none;z-index:2}
 @keyframes sweep{0%,55%{left:-40%}100%{left:130%}}
-.spot.k1 .sname{background:linear-gradient(90deg,var(--ink) 40%,#f6c445 50%,var(--ink) 60%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:nameshine 3.5s linear infinite}
+.spot.k1 .sname{background:linear-gradient(90deg,var(--ink) 40%,#5ab8ff 50%,var(--ink) 60%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:nameshine 3.5s linear infinite}
 @keyframes nameshine{from{background-position:120% 0}to{background-position:-120% 0}}
 .cf{position:absolute;top:-6vh;width:1.3vh;height:2vh;opacity:.85;pointer-events:none;animation:fall var(--w) linear var(--d) infinite}
 .cf.coin{width:3.4vh;height:3.4vh;border-radius:50%;background:#f6c445;border:2px solid #c99a1d;color:#7a5200;font:700 2.2vh/3vh 'Barlow Condensed',Arial,sans-serif;text-align:center;animation-name:fallc}
@@ -819,6 +819,13 @@ button,select,input{font:inherit;color:inherit}
 .sstats>div:nth-child(4) span{font-size:clamp(16px,4.8vh,60px);color:var(--ink)}
 .sstats>div:nth-child(4) b{font-size:clamp(36px,14.5vh,200px);color:var(--ink)}
 .sroad{height:8vh;width:100%}
+.spot{--ph:min(62vh,33vw)}
+.sface{position:relative;padding-top:12vh;gap:0}
+.sface .crown{position:absolute;left:50%;top:0;translate:-50% 0;margin:0}
+.crown.t1{aspect-ratio:96/50}
+.sface .crown.t1{height:12vh}
+.sface .crown.t2{height:10vh}
+.sface .crown.t3{height:9vh}
 }
 `,HTML=`<section id="board">
   <div class="timer" aria-hidden="true"><i id="timerBar"></i></div>
@@ -867,9 +874,21 @@ const LAYOUT={6:[3,2],8:[4,2],10:[5,2],12:[4,3],15:[5,3],20:[5,4]};
 function layout(){if(st.view==="spot")return{spot:true,stack:false,per:1};if(window.innerWidth<800)return{stack:true,per:Infinity};const l=LAYOUT[st.perPage]||[5,2];return{stack:false,c:l[0],r:l[1],per:l[0]*l[1]}}
 function enriched(){const L=members.map((m,i)=>{const o=Object.assign({},m);o.pct=m.target>0?m.achieved/m.target*100:(m.ct>0?m.ca/m.ct*100:0);o.idx=i;return o});let r=0,prev=null;L.slice().sort((a,b)=>b.pct-a.pct).forEach((m,i)=>{const k=m.pct.toFixed(2);if(k!==prev){r=i+1;prev=k}m.rank=r});return L}
 function sortList(L){const s=st.sort;return L.slice().sort((a,b)=>{if(s==="name")return a.name.localeCompare(b.name);if(s==="dept")return a.dept.localeCompare(b.dept)||b.pct-a.pct;if(s==="target")return b.target-a.target;return b.pct-a.pct})}
-const CROWN_COL=["","#f6c445","#c9d4dc","#d08a4e"],CROWN_LBL=["","Top performer","Second place","Third place"];
+const CROWN_COL=["","#2f9bff","#c9d4dc","#d08a4e"],CROWN_LBL=["","Top performer","Second place","Third place"];
 function crownTier(m){if(m.pct<=0||st.crown==="off")return 0;if(st.crown==="100")return m.pct>=100?1:0;const lim=st.crown==="3"?3:1;return m.rank<=lim?m.rank:0}
-function crownSVG(t){const k=' stroke="rgba(0,0,0,.32)" stroke-width="1.5" stroke-linejoin="round"';return '<svg class="crown t'+t+'" viewBox="0 0 64 44" style="color:'+CROWN_COL[t]+'" role="img" aria-label="'+CROWN_LBL[t]+'"><title>'+CROWN_LBL[t]+'</title><path d="M5 36 9 12l15 12L32 5l8 19 15-12 4 24z" fill="currentColor"'+k+'/><rect x="5" y="37" width="54" height="6" rx="2" fill="currentColor"'+k+'/><circle cx="9" cy="10" r="3.5" fill="currentColor"'+k+'/><circle cx="32" cy="3.8" r="3.5" fill="currentColor"'+k+'/><circle cx="55" cy="10" r="3.5" fill="currentColor"'+k+'/><circle cx="20" cy="40" r="1.7" fill="rgba(0,0,0,.3)"/><circle cx="32" cy="40" r="1.7" fill="rgba(0,0,0,.3)"/><circle cx="44" cy="40" r="1.7" fill="rgba(0,0,0,.3)"/><g transform="translate(-3 8)"><path class="sp" d="M0-4 1-1 4 0 1 1 0 4-1 1-4 0-1-1z" fill="#fff"/></g><g transform="translate(67 3)"><path class="sp s2" d="M0-4 1-1 4 0 1 1 0 4-1 1-4 0-1-1z" fill="#fff"/></g><g transform="translate(32 -6)"><path class="sp s3" d="M0-4 1-1 4 0 1 1 0 4-1 1-4 0-1-1z" fill="#fff"/></g></svg>'}
+function tiaraSVG(){const sp=[[6,35,3.2],[15,28,3.6],[26,19,4],[37,12,4.2],[48,4,5],[59,12,4.2],[70,19,4],[81,28,3.6],[90,35,3.2]],ln=' stroke="#5f7a92" stroke-width=".6" stroke-linejoin="round"',gem=(x,y,r)=>'<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="url(#tgB)" stroke="#0a5fa0" stroke-width=".5"/><circle cx="'+(x-r*.3)+'" cy="'+(y-r*.35)+'" r="'+(r*.3)+'" fill="#fff" opacity=".9"/>';
+let h='<svg class="crown t1" viewBox="0 0 96 50" style="color:#2f9bff" role="img" aria-label="Top performer"><title>Top performer</title><defs><linearGradient id="tgS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f9ff"/><stop offset="1" stop-color="#9fb4c8"/></linearGradient><linearGradient id="tgB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9aeaff"/><stop offset="1" stop-color="#0a8fe0"/></linearGradient></defs>';
+h+='<g fill="none" stroke="#c5d4e3" stroke-width="1.3" stroke-linecap="round">';
+for(let i=0;i<sp.length-1;i++){const a=sp[i][0],b=sp[i+1][0],m=(a+b)/2,hh=Math.min(14,(b-a)*.85);h+='<path d="M'+a+' 41Q'+m+' '+(41-hh*1.6)+' '+b+' 41"/>'}
+h+='</g>';
+for(let i=0;i<sp.length-1;i++){const a=sp[i][0],b=sp[i+1][0],m=(a+b)/2,hh=Math.min(14,(b-a)*.85);h+=gem(m,41-hh*.8,1.5)}
+sp.forEach(p=>{const x=p[0],t=p[1],w=p[2];h+='<polygon points="'+(x-w/2)+',42 '+x+','+(t+2)+' '+(x+w/2)+',42" fill="url(#tgS)"'+ln+'/>'+gem(x,t,w*.5+.4)});
+h+='<rect x="3" y="41" width="90" height="7" rx="3" fill="url(#tgS)"'+ln+'/>';
+for(let x=10;x<=86;x+=8){if(Math.abs(x-48)>6)h+=gem(x,44.5,1.8)}
+h+='<polygon points="48,22 56,32 48,46 40,32" fill="url(#tgB)" stroke="#eaf7ff" stroke-width="1" stroke-linejoin="round"/><path d="M40 32h16M48 22l-4 10 4 14 4-14z" fill="none" stroke="#fff" stroke-width=".6" opacity=".85" stroke-linejoin="round"/>';
+const star='<path d="M0-4 1-1 4 0 1 1 0 4-1 1-4 0-1-1z" fill="#fff"/>';
+h+='<g transform="translate(48 -3)"><g class="sp">'+star+'</g></g><g transform="translate(31 9)"><g class="sp s2">'+star+'</g></g><g transform="translate(65 9)"><g class="sp s3">'+star+'</g></g></svg>';return h}
+function crownSVG(t){if(t===1)return tiaraSVG();const k=' stroke="rgba(0,0,0,.32)" stroke-width="1.5" stroke-linejoin="round"';return '<svg class="crown t'+t+'" viewBox="0 0 64 44" style="color:'+CROWN_COL[t]+'" role="img" aria-label="'+CROWN_LBL[t]+'"><title>'+CROWN_LBL[t]+'</title><path d="M5 36 9 12l15 12L32 5l8 19 15-12 4 24z" fill="currentColor"'+k+'/><rect x="5" y="37" width="54" height="6" rx="2" fill="currentColor"'+k+'/><circle cx="9" cy="10" r="3.5" fill="currentColor"'+k+'/><circle cx="32" cy="3.8" r="3.5" fill="currentColor"'+k+'/><circle cx="55" cy="10" r="3.5" fill="currentColor"'+k+'/><circle cx="20" cy="40" r="1.7" fill="rgba(0,0,0,.3)"/><circle cx="32" cy="40" r="1.7" fill="rgba(0,0,0,.3)"/><circle cx="44" cy="40" r="1.7" fill="rgba(0,0,0,.3)"/>'+(t===1?'<path d="M32 17 40 25 32 37 24 25z" fill="#eaf7ff" stroke="#0a4f9e" stroke-width="1.3" stroke-linejoin="round"/><path d="M24 25h16M32 17l-3.5 8 3.5 12 3.5-12z" fill="none" stroke="#5aaaf0" stroke-width=".9" stroke-linejoin="round"/>':'')+'<g transform="translate(-3 8)"><path class="sp" d="M0-4 1-1 4 0 1 1 0 4-1 1-4 0-1-1z" fill="#fff"/></g><g transform="translate(67 3)"><path class="sp s2" d="M0-4 1-1 4 0 1 1 0 4-1 1-4 0-1-1z" fill="#fff"/></g><g transform="translate(32 -6)"><path class="sp s3" d="M0-4 1-1 4 0 1 1 0 4-1 1-4 0-1-1z" fill="#fff"/></g></svg>'}
 const carsTxt=m=>m.ct>0?(m.ca||0)+" / "+m.ct:String(m.ca||0);
 const CARSVG='<svg class="car" viewBox="0 0 64 28" aria-hidden="true"><path d="M3 21v-4c0-2 1-3 3-3l9-1 7-7h19l7 7 9 1c2 0 3 1 3 3v4z" fill="currentColor"/><path d="M24 8h7v6H18zM34 8h6l5 6H34z" fill="rgba(255,255,255,.88)"/><g class="wh"><circle cx="17" cy="22" r="5" fill="#16232b"/><circle cx="17" cy="22" r="1.8" fill="#cfd8dc"/><path d="M17 18v8M13 22h8" stroke="#cfd8dc" stroke-width=".9"/></g><g class="wh"><circle cx="47" cy="22" r="5" fill="#16232b"/><circle cx="47" cy="22" r="1.8" fill="#cfd8dc"/><path d="M47 18v8M43 22h8" stroke="#cfd8dc" stroke-width=".9"/></g></svg>';
 const FLAGSVG='<svg class="flag" viewBox="0 0 24 28" aria-hidden="true"><rect x="2" y="2" width="2" height="24" fill="#8a9aa3"/><rect x="4" y="3" width="20" height="10" fill="#fff" stroke="#8a9aa3" stroke-width=".6"/><g fill="#111"><rect x="4" y="3" width="5" height="5"/><rect x="14" y="3" width="5" height="5"/><rect x="9" y="8" width="5" height="5"/><rect x="19" y="8" width="5" height="5"/></g></svg>';
