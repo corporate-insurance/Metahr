@@ -802,28 +802,23 @@ button,select,input{font:inherit;color:inherit}
 
 /* ---------- Big full-size display (TV) ---------- */
 @media (min-width:801px){
-#board{padding:1.6vh 1.6vw 1.2vh}
-.ttl h1{font-size:clamp(40px,9vh,120px)}
-.ttl p{font-size:clamp(20px,3.8vh,48px)}
-.tot div b{font-size:clamp(40px,9.5vh,120px)}
-.tot div span{font-size:clamp(18px,3.4vh,42px)}
-.chips{gap:1vw;margin:1.2vh 0 1.2vh}
-.chip{font-size:clamp(20px,4.2vh,54px);padding:1vh 1.8vw}
-.foot{font-size:clamp(16px,3vh,36px)}
-.spot{gap:2.5vw;padding:2vh 2.4vw;--ph:min(60vh,34vw)}
+#board{padding:1.4vh 1.4vw 1vh}
+#board:has(#spotWrap:not([hidden])) .top,#board:has(#spotWrap:not([hidden])) .chips{display:none}
+.foot{font-size:clamp(14px,2.6vh,32px);margin-top:.8vh}
+.spot{gap:2.2vw;padding:2vh 2.2vw;--ph:min(76vh,36vw)}
 .sface .photo,.sface .avatar{border-radius:3vh}
-.sinfo{gap:1.2vh;justify-content:center}
-.sname{font-size:clamp(56px,16vh,240px)}
-.sdept{font-size:clamp(30px,7.4vh,96px)}
-.srow{gap:2.4vw;flex-wrap:nowrap;margin-top:.6vh}
-.ring{width:clamp(170px,31vh,420px)}
+.sinfo{gap:1.4vh;justify-content:center;min-height:0}
+.sname{font-size:clamp(30px,15vh,230px)}
+.sdept{font-size:clamp(18px,7vh,90px)}
+.srow{gap:2.2vw;flex-wrap:nowrap;margin-top:.4vh}
+.ring{width:clamp(100px,30vh,400px)}
 .sstats{gap:1.2vh 3vw;grid-template-columns:repeat(2,auto)}
-.sstats span{font-size:clamp(22px,4.6vh,60px)}
-.sstats b{font-size:clamp(46px,11vh,150px)}
-.sstats>div:nth-child(4){background:var(--panel2);border-radius:2vh;padding:.8vh 2vw 1vh;border:2px solid var(--line)}
-.sstats>div:nth-child(4) span{font-size:clamp(24px,5vh,64px);color:var(--ink)}
-.sstats>div:nth-child(4) b{font-size:clamp(64px,16vh,220px);color:var(--ink)}
-.sroad{height:9vh;width:100%}
+.sstats span{font-size:clamp(14px,4.4vh,56px)}
+.sstats b{font-size:clamp(28px,10.5vh,140px)}
+.sstats>div:nth-child(4){background:var(--panel2);border-radius:2vh;padding:.6vh 1.8vw .8vh;border:2px solid var(--line)}
+.sstats>div:nth-child(4) span{font-size:clamp(16px,4.8vh,60px);color:var(--ink)}
+.sstats>div:nth-child(4) b{font-size:clamp(36px,14.5vh,200px);color:var(--ink)}
+.sroad{height:8vh;width:100%}
 }
 `,HTML=`<section id="board">
   <div class="timer" aria-hidden="true"><i id="timerBar"></i></div>
